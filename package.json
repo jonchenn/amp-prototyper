@@ -17,6 +17,10 @@
   },
   "homepage": "https://github.com/jonchenn/easy-amplify#readme",
   "dependencies": {
+    "fs-extra": "^7.0.1",
+    "fse": "^4.0.1",
+    "path": "^0.12.7",
+    "pretty": "^2.0.0",
     "puppeteer": "^1.11.0"
   }
 }
