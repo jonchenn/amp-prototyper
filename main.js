@@ -6,7 +6,6 @@ const beautify = require('js-beautify').html;
 
 const IMG_SELECTOR = 'amp-img';
 
-// let url = 'https://jonchen-lab.firebaseapp.com';
 let url = 'http://127.0.0.1:8080/';
 let escapedUrl = url.replace('https://', '').replace('\/', '|');
 let envVars = {
@@ -15,12 +14,46 @@ let envVars = {
 
 const steps = [
   {
+    name: 'Clean up unsupported elements',
+    actions: [{
+      log: 'Remove iframe',
+      actionType: 'replace',
+      selector: 'html',
+      regex: '<iframe.*<\/iframe>',
+      replace: '',
+    }, {
+      log: 'Remove inline scripts',
+      actionType: 'replace',
+      selector: 'html',
+      regex: '<script[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>',
+      replace: '',
+    }, {
+      log: 'Remove third-party elements',
+      actionType: 'replace',
+      selector: 'html',
+      regex: '<.*(src|href)=(?!"(%%VAR_URL%%|#)).*>',
+      replace: '',
+    }],
+    beautify: true,
+  },
+  {
+    name: 'Remove disallowed attributes',
+    actions: [{
+      log: 'Remove onclick',
+      actionType: 'replace',
+      selector: 'html',
+      regex: '(onclick|controlheight|controlwidth|aria-description|adhocenable|data-[^=]*)=\"[^"]*\"',
+      replace: '',
+    }],
+    beautify: true,
+  },
+  {
     name: 'Make relative URLs absolute',
     actions: [{
       log: 'Update relative URLs',
       actionType: 'replace',
       selector: 'html',
-      find: '(href|src)=\"([/a-zA-Z0-9\.]+)\"',
+      regex: '(href|src)=\"([/a-zA-Z0-9\.]+)\"',
       replace: '$1="%%VAR_URL%%$2"',
     }],
     beautify: true,
@@ -28,58 +61,31 @@ const steps = [
   {
     name: 'Set HTML tag with AMP',
     actions: [{
-      actionType: 'setAttribute',
-      selector: 'html',
-      attribute: 'amp',
-      value: true,
     }],
-  },
-  {
-    name: 'Clean up unsupported elements',
-    actions: [{
-      log: 'Remove third-party elements',
-      actionType: 'replace',
-      selector: 'html',
-      find: '<.*(src|href)=(?!"(%%VAR_URL%%|#)).*>',
-      replace: '',
-    }, {
-      log: 'Remove inline scripts',
-      actionType: 'replace',
-      selector: 'html',
-      find: '<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>',
-      replace: '',
-    }, {
-      log: 'Remove iframe',
-      actionType: 'replace',
-      selector: 'html',
-      find: '<iframe\b[^<]*(?:(?!<\/iframe>)<[^<]*)*<\/iframe>',
-      replace: '',
-    // }, {
-    //   log: 'Remove disallowed attributes',
-    //   actionType: 'replace',
-    //   selector: 'html',
-    //   find: '(onclick=".*\"\"|onclick=".*\)\")',
-    //   replace: '',
-    }],
-    beautify: true,
   },
   {
     name: 'Add AMP JS library and AMP boilerplate',
     actions: [{
+      actionType: 'setAttribute',
+      selector: 'html',
+      attribute: 'amp',
+      value: '',
+    }, {
+      log: 'Update viewport',
+      actionType: 'replaceOrInsert', // replaceOrInsert
+      selector: 'head',
+      regex: '<meta name="viewport"([\sa-zA-Z1-9=\"\-\,]*)>',
+      replace: '<meta name="viewport" content="width=device-width,minimum-scale=1,initial-scale=1">',
+    }, {
       log: 'Add AMP JS library.',
       actionType: 'appendAfter',
       selector: 'title',
       value: '<script async src="https://cdn.ampproject.org/v0.js"></script>',
-    }, {
-      log: 'Add AMP boilerplate.',
-      actionType: 'insertBottom',
-      selector: 'head',
-      value: '<script async src="https://cdn.ampproject.org/v0.js"></script>',
-    }, {
-      actionType: 'replaceOrInsert', // replaceOrInsert
-      selector: 'head',
-      find: '<meta name="viewport"([\sa-zA-Z1-9=\"\-\,]*)>',
-      replace: '<meta name="viewport" content="width=device-width,minimum-scale=1,initial-scale=1">',
+    // }, {
+    //   log: 'Add AMP boilerplate.',
+    //   actionType: 'insertBottom',
+    //   selector: 'head',
+    //   value: '',
     }],
     beautify: true,
   },
@@ -119,12 +125,10 @@ async function run() {
   let stepOutput = '';
   for (let i=0; i<steps.length; i++) {
     let step = steps[i];
+    if (!step.actions || step.skip) continue;
     console.log(`=> Step ${i+1}: ${step.name}`);
-    if (!step.actions) return;
 
     step.actions.forEach(async (action) => {
-      // console.log(`---> ${action.log || action.actionType}`);
-
       Object.keys(action).forEach((prop) => {
         action[prop] = replaceEnvVars(action[prop]);
       });
@@ -146,7 +150,7 @@ async function run() {
             if (!el) return `No matched regex: ${action.selector}`;
 
             let html = el.outerHTML;
-            let regex = new RegExp(action.find, 'ig');
+            let regex = new RegExp(action.regex, 'ig');
             let matches = html.match(regex, 'ig');
             html = html.replace(regex, action.replace);
             el.innerHTML = html;
@@ -160,7 +164,7 @@ async function run() {
             if (!el) return `No matched regex: ${action.selector}`;
 
             let html = el.outerHTML;
-            let regex = new RegExp(action.find, 'ig');
+            let regex = new RegExp(action.regex, 'ig');
             if (html.match(regex, 'ig')) {
               html = html.replace(regex, action.replace);
               el.innerHTML = html;
@@ -173,6 +177,21 @@ async function run() {
               });
               return `Inserted in ${action.selector}`;
             }
+          }, action);
+          break;
+
+        case 'insertBottom':
+          message = await page.evaluate(async (action) => {
+            let el = document.querySelector(action.selector);
+            if (!el) return `No matched regex: ${action.selector}`;
+
+            let html = el.outerHTML;
+            var temp = document.createElement('template');
+            temp.innerHTML = action.replace;
+            temp.content.childNodes.forEach((node) => {
+              el.appendChild(node);
+            });
+            return `Inserted in ${action.selector}`;
           }, action);
           break;
 
@@ -199,7 +218,7 @@ async function run() {
 
     if (step.beautify) {
       let html = await page.content();
-      await page.setContent(beautify(html.trim(), {
+      await page.setContent(beautify(html, {
         indent_size: 2,
         preserve_newlines: false,
       }));
