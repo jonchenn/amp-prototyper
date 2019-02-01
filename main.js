@@ -13,7 +13,6 @@ let envVars = {
   '%%VAR_URL%%': encodeURI(url),
 };
 
-
 const steps = [
   {
     name: 'Make relative URLs absolute',
@@ -120,64 +119,68 @@ async function run() {
   let stepOutput = '';
   for (let i=0; i<steps.length; i++) {
     let step = steps[i];
-    console.log(`Step ${i+1}: ${step.name}`);
+    console.log(`=> Step ${i+1}: ${step.name}`);
     if (!step.actions) return;
 
     step.actions.forEach(async (action) => {
-      console.log(`--> ${action.log || action.actionType}`);
+      // console.log(`---> ${action.log || action.actionType}`);
 
       Object.keys(action).forEach((prop) => {
         action[prop] = replaceEnvVars(action[prop]);
       });
 
+      let message = action.actionType;
+
       switch (action.actionType) {
         case 'setAttribute':
-          await page.evaluate(async (action) => {
+          message = await page.evaluate(async (action) => {
             let el = document.querySelector(action.selector);
             el.setAttribute(action.attribute, action.value);
-            return;
+            return `set ${action.attribute} as ${action.value}`;
           }, action);
           break;
 
         case 'replace':
-          await page.evaluate(async (action) => {
+          message = await page.evaluate(async (action) => {
             let el = document.querySelector(action.selector);
-            if (!el) return;
+            if (!el) return `No matched regex: ${action.selector}`;
 
             let html = el.outerHTML;
-            html = html.replace(new RegExp(action.find, 'ig'), action.replace);
+            let regex = new RegExp(action.find, 'ig');
+            let matches = html.match(regex, 'ig');
+            html = html.replace(regex, action.replace);
             el.innerHTML = html;
-            return;
+            return `${matches ? matches.length : 0} replaced`;
           }, action);
           break;
 
         case 'replaceOrInsert':
-          await page.evaluate(async (action) => {
+          message = await page.evaluate(async (action) => {
             let el = document.querySelector(action.selector);
-            if (!el) return;
+            if (!el) return `No matched regex: ${action.selector}`;
 
             let html = el.outerHTML;
-            if (html.match(new RegExp(action.find, 'ig'))) {
-              html = html.replace(new RegExp(action.find, 'ig'), action.replace);
+            let regex = new RegExp(action.find, 'ig');
+            if (html.match(regex, 'ig')) {
+              html = html.replace(regex, action.replace);
               el.innerHTML = html;
+              return 'Replaced';
             } else {
               var temp = document.createElement('template');
               temp.innerHTML = action.replace;
               temp.content.childNodes.forEach((node) => {
                 el.appendChild(node);
               });
+              return `Inserted in ${action.selector}`;
             }
-            return;
           }, action);
           break;
 
         case 'appendAfter':
-          await page.evaluate(async (action) => {
+          message = await page.evaluate(async (action) => {
             let el = document.querySelector(action.selector);
-            if (!el) {
-              console.log(`No matched regex: ${action.selector}`);
-              return;
-            }
+            if (!el) return `No matched regex: ${action.selector}`;
+
             var temp = document.createElement('template');
             temp.innerHTML = action.value;
             temp.content.childNodes.forEach((node) => {
@@ -190,12 +193,15 @@ async function run() {
         default:
           break;
       }
+      console.log(`---> ${action.log}: ${message}`);
+
     });
 
     if (step.beautify) {
       let html = await page.content();
       await page.setContent(beautify(html.trim(), {
         indent_size: 2,
+        preserve_newlines: false,
       }));
     }
 
