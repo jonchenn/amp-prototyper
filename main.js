@@ -5,11 +5,21 @@ const path = require('path');
 const beautify = require('js-beautify').html;
 const colors = require('colors');
 const amphtmlValidator = require('amphtml-validator');
+const argv = require('minimist')(process.argv.slice(2));
 const { JSDOM } = require("jsdom");
 
 const IMG_SELECTOR = 'amp-img';
 
-let url = 'http://127.0.0.1:8080';
+let url = argv['url'];
+let outputPath = argv['output'];
+let verbose = argv.hasOwnProperty('verbose');
+
+// Print usage when missing necessary arguments.
+if (!url || !outputPath) {
+  printUsage();
+  return;
+}
+
 let escapedUrl = url.replace('https://', '').replace('\/', '|');
 let envVars = {
   '%%URL%%': encodeURI(url),
@@ -143,6 +153,20 @@ const steps = [
   },
 ];
 
+function printUsage() {
+  let usage = `
+Usage: node main.js
+
+Required:
+  --url=URL\tURL to the page to convert.
+  --output=FILE\tPath to the output file.
+
+Options:
+  --verbose\tDisplay AMP validation errors.
+  `;
+  console.log(usage);
+}
+
 function replaceEnvVars(str) {
   Object.keys(envVars).forEach((key) => {
     if (typeof str === 'string') {
@@ -153,7 +177,7 @@ function replaceEnvVars(str) {
 }
 
 async function outputToFile(filename, html, options) {
-  let filePath = path.resolve(`./output/${escapedUrl}/${filename}`);
+  let filePath = path.resolve(`./output/${outputPath}/${filename}`);
   await fse.outputFile(filePath, html);
 }
 
@@ -174,6 +198,8 @@ async function validateAMP(html) {
     console.log('\tAMP validation successful.'.green);
   } else {
     console.log(`\t${result.errors.length} AMP validation errors.`.red);
+    if (!verbose) return;
+
     result.errors.forEach((e) => {
       var msg = `line ${e.line}, col ${e.col}: ${e.message}`;
       if (e.specUrl !== null) {
@@ -184,7 +210,7 @@ async function validateAMP(html) {
   }
 }
 
-async function run() {
+async function amplify() {
   let consoleOutputs = [];
   const browser = await puppeteer.launch({
     headless: true,
@@ -202,7 +228,7 @@ async function run() {
   sourceDom = new JSDOM(pageSource).window.document;
   console.log(`Open ${url}`.green);
   await outputToFile(`output-step-0.html`, pageSource);
-  await page.screenshot({path: `output/${escapedUrl}/output-step-0.png`});
+  await page.screenshot({path: `output/${outputPath}/output-step-0.png`});
 
   // Clear page.on listener.
   page.removeListener('response', collectStyles);
@@ -319,7 +345,7 @@ async function run() {
       waitUntil: 'networkidle0',
     });
     await page.waitFor(200);
-    await page.screenshot({path: `output/${escapedUrl}/output-step-${i+1}.png`});
+    await page.screenshot({path: `output/${outputPath}/output-step-${i+1}.png`});
 
     // Validate AMP.
     await validateAMP(html);
@@ -329,4 +355,5 @@ async function run() {
   console.log('Complete.'.green);
 }
 
-run();
+// Main
+amplify();
