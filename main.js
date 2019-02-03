@@ -4,7 +4,8 @@ const fse = require('fs-extra'); // v 5.0.0
 const path = require('path');
 const beautify = require('js-beautify').html;
 const colors = require('colors');
-const { JSDOM } = require("jsdom");;
+const amphtmlValidator = require('amphtml-validator');
+const { JSDOM } = require("jsdom");
 
 const IMG_SELECTOR = 'amp-img';
 
@@ -153,7 +154,7 @@ function replaceEnvVars(str) {
 
 async function outputToFile(filename, html, options) {
   let filePath = path.resolve(`./output/${escapedUrl}/${filename}`);
-  await fse.outputFile(filePath, '<!doctype html>\n' + html);
+  await fse.outputFile(filePath, html);
 }
 
 async function collectStyles(response) {
@@ -165,25 +166,35 @@ async function collectStyles(response) {
   }
 }
 
-async function run() {
-  let consoleOutput = '';
+async function validateAMP(html) {
+  const ampValidator = await amphtmlValidator.getInstance();
 
+  let result = ampValidator.validateString(html);
+  if (result.status === 'PASS') {
+    console.log('\tAMP validation successful.'.green);
+  } else {
+    console.log(`\t${result.errors.length} AMP validation errors.`.red);
+    result.errors.forEach((e) => {
+      var msg = `line ${e.line}, col ${e.col}: ${e.message}`;
+      if (e.specUrl !== null) {
+        msg += ` (see ${e.specUrl})`;
+      }
+      console.log('\t' + msg.dim);
+    });
+  }
+}
+
+async function run() {
+  let consoleOutputs = [];
   const browser = await puppeteer.launch({
-    headless: true
+    headless: true,
   });
   const page = await browser.newPage();
   await page.emulate(devices['Pixel 2']);
   page.on('response', collectStyles);
   page.on('console', (consoleObj) => {
-    consoleOutput += consoleObj.text() + '\n';
+    consoleOutputs.push(consoleObj.text());
   });
-
-  // Add #development to the URL.
-  if (url.match(/#.*=(\w)+/ig)) {
-    url = url.replace(/#.*=(\w)+/ig, '#development=1');
-  } else {
-    url += '#development=1';
-  }
 
   // Open URL and save source to sourceDom.
   const response = await page.goto(url);
@@ -201,7 +212,7 @@ async function run() {
 
   for (let i=0; i<steps.length; i++) {
     let step = steps[i];
-    consoleOutput = '';
+    consoleOutputs = [];
 
     if (!step.actions || step.skip) continue;
     console.log(`Step ${i+1}: ${step.name}`.yellow);
@@ -291,10 +302,10 @@ async function run() {
         default:
           break;
       }
-      console.log(`    ${action.log || action.actionType}: ${message}`.reset);
+      console.log(`\t${action.log || action.actionType}: ${message}`.reset);
     });
 
-    let html = sourceDom.documentElement.outerHTML;
+    let html = '<!doctype html>\n' + sourceDom.documentElement.outerHTML;
 
     html = beautify(html, {
       indent_size: 2,
@@ -309,6 +320,9 @@ async function run() {
     });
     await page.waitFor(200);
     await page.screenshot({path: `output/${escapedUrl}/output-step-${i+1}.png`});
+
+    // Validate AMP.
+    await validateAMP(html);
   }
 
   await browser.close();
