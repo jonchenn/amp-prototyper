@@ -175,7 +175,6 @@ async function run() {
   await page.emulate(devices['Pixel 2']);
   page.on('response', collectStyles);
   page.on('console', (consoleObj) => {
-    // console.log(consoleObj.text())
     consoleOutput += consoleObj.text() + '\n';
   });
 
@@ -199,6 +198,7 @@ async function run() {
 
   let i = 1;
   let stepOutput = '';
+
   for (let i=0; i<steps.length; i++) {
     let step = steps[i];
     consoleOutput = '';
@@ -257,12 +257,7 @@ async function run() {
           el = sourceDom.querySelector(action.selector);
           if (!el) return `No matched regex: ${action.selector}`;
 
-          html = el.outerHTML;
-          newEl = sourceDom.createElement('template');
-          newEl.innerHTML = action.value || '';
-          newEl.content.childNodes.forEach((node) => {
-            el.appendChild(node);
-          });
+          el.innerHTML += (action.value || '');
           message = `Inserted in ${action.selector}`;
           break;
 
@@ -272,7 +267,7 @@ async function run() {
 
           newEl = sourceDom.createElement('template');
           newEl.innerHTML = action.value;
-          newEl.content.childNodes.forEach((node) => {
+          Array.from(newEl.content.childNodes).forEach((node) => {
             el.parentNode.insertBefore(node, el.nextSibling);
           });
           message = 'dom appended';
@@ -297,20 +292,22 @@ async function run() {
           break;
       }
       console.log(`    ${action.log || action.actionType}: ${message}`.reset);
-
     });
 
-    let html = sourceDom.documentElement.outerHTML
+    let html = sourceDom.documentElement.outerHTML;
 
     html = beautify(html, {
       indent_size: 2,
       preserve_newlines: false,
       content_unformatted: ['script', 'style'],
     });
-    sourceDom.documentElement.innerHTML = html
+    sourceDom.documentElement.innerHTML = html;
 
     await outputToFile(`output-step-${i+1}.html`, html);
-    await page.setContent(html);
+    await page.setContent(html, {
+      waitUntil: 'networkidle0',
+    });
+    await page.waitFor(200);
     await page.screenshot({path: `output/${escapedUrl}/output-step-${i+1}.png`});
   }
 
