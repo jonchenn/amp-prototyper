@@ -4,7 +4,7 @@ const steps = require('./src/default-steps.js')
 
 function printUsage() {
   let usage = `
-Usage: node main.js
+Usage: node run.js --url=[URL]
 
 Required:
   --url=URL\tURL to the page to convert.
