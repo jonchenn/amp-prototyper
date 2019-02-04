@@ -37,6 +37,7 @@ async function collectStyles(response) {
 
 async function validateAMP(html) {
   const ampValidator = await amphtmlValidator.getInstance();
+  let allMsgs = '';
 
   let result = ampValidator.validateString(html);
   if (result.status === 'PASS') {
@@ -51,17 +52,20 @@ async function validateAMP(html) {
         msg += ` (see ${e.specUrl})`;
       }
       console.log('\t' + msg.dim);
+      allMsgs += msg + '\n';
     });
   }
+  return Promise.resolve(allMsgs);
 }
 
 async function amplify(url, steps, argv) {
   argv = argv || {};
-  outputPath = argv['output'];
+  outputPath = argv['output'] || '';
   verbose = argv.hasOwnProperty('verbose');
-  // Print usage when missing necessary arguments.
-  if (!url || !steps || !outputPath) {
-    printUsage();
+
+  // Print warnings when missing necessary arguments.
+  if (!url || !steps) {
+    console.log('Missing url or steps.');
     return;
   }
 
@@ -216,7 +220,8 @@ async function amplify(url, steps, argv) {
     await page.screenshot({path: `output/${outputPath}/output-step-${i+1}.png`});
 
     // Validate AMP.
-    await validateAMP(html);
+    let allErrors = await validateAMP(html);
+    await outputToFile(`output-step-${i+1}-log.txt`, allErrors);
   }
 
   await browser.close();

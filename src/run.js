@@ -1,4 +1,4 @@
-const {amplify} = require('../src/easy-amplify-core');
+const {amplify} = require('./easy-amplify-core');
 const argv = require('minimist')(process.argv.slice(2));
 
 function printUsage() {
@@ -7,9 +7,9 @@ Usage: node main.js
 
 Required:
   --url=URL\tURL to the page to convert.
-  --output=FILE\tPath to the output file.
 
 Options:
+  --output=FILE\tPath to the output file.
   --verbose\tDisplay AMP validation errors.
   `;
   console.log(usage);
@@ -122,7 +122,7 @@ const steps = [
       log: 'Update viewport',
       actionType: 'replaceOrInsert',
       selector: 'head',
-      regex: '<meta name="viewport"([\\sa-zA-Z1-9=\"\-\,]*)>',
+      regex: '<meta.*name="viewport".*>',
       replace: '<meta name="viewport" content="width=device-width,minimum-scale=1,initial-scale=1">',
     }, {
       log: 'Update charset to UTF-8',
@@ -132,14 +132,18 @@ const steps = [
       replace: '<meta charset="utf-8">',
     }, {
       log: 'Add canonical link.',
-      actionType: 'appendAfter',
-      selector: 'title',
-      value: '<link rel=canonical href="%%URL%%">',
+      actionType: 'replaceOrInsert',
+      selector: 'head',
+      regex: '<link rel=(\")?canonical(\")?.*>',
+      replace: '<link rel=canonical href="%%URL%%">',
     }, {
       log: 'Add AMP boilerplate.',
-      actionType: 'appendAfter',
-      selector: 'title',
-      value: '<style amp-boilerplate>body{-webkit-animation:-amp-start 8s steps(1,end) 0s 1 normal both;-moz-animation:-amp-start 8s steps(1,end) 0s 1 normal both;-ms-animation:-amp-start 8s steps(1,end) 0s 1 normal both;animation:-amp-start 8s steps(1,end) 0s 1 normal both}@-webkit-keyframes -amp-start{from{visibility:hidden}to{visibility:visible}}@-moz-keyframes -amp-start{from{visibility:hidden}to{visibility:visible}}@-ms-keyframes -amp-start{from{visibility:hidden}to{visibility:visible}}@-o-keyframes -amp-start{from{visibility:hidden}to{visibility:visible}}@keyframes -amp-start{from{visibility:hidden}to{visibility:visible}}</style><noscript><style amp-boilerplate>body{-webkit-animation:none;-moz-animation:none;-ms-animation:none;animation:none}</style></noscript>',
+      actionType: 'insertBottom',
+      selector: 'head',
+      value: `
+<style amp-boilerplate>body{-webkit-animation:-amp-start 8s steps(1,end) 0s 1 normal both;-moz-animation:-amp-start 8s steps(1,end) 0s 1 normal both;-ms-animation:-amp-start 8s steps(1,end) 0s 1 normal both;animation:-amp-start 8s steps(1,end) 0s 1 normal both}@-webkit-keyframes -amp-start{from{visibility:hidden}to{visibility:visible}}@-moz-keyframes -amp-start{from{visibility:hidden}to{visibility:visible}}@-ms-keyframes -amp-start{from{visibility:hidden}to{visibility:visible}}@-o-keyframes -amp-start{from{visibility:hidden}to{visibility:visible}}@keyframes -amp-start{from{visibility:hidden}to{visibility:visible}}</style>
+<noscript><style amp-boilerplate>body{-webkit-animation:none;-moz-animation:none;-ms-animation:none;animation:none}</style></noscript>
+`,
     }],
   },
   {
@@ -174,7 +178,7 @@ const steps = [
 
 let url = argv['url'], output = argv['output'];
 
-if (!url || !output) {
+if (!url) {
   printUsage();
   return;
 }
