@@ -130,6 +130,10 @@ async function amplify(url, steps, argv) {
       let message = action.actionType;
       let el, html, regex, matches, newEl, body;
 
+      if (action.waitAfterLoaded) {
+        await page.waitFor(action.waitAfterLoaded);
+      }
+
       switch (action.actionType) {
         case 'setAttribute':
           el = sourceDom.querySelector(action.selector);
@@ -222,9 +226,9 @@ async function amplify(url, steps, argv) {
           message = `Removed ${ratio}% styles. (${oldSize} -> ${newStyles.length})`;
           break;
 
-        case 'custom':
-          if (action.function) {
-            action.function(action, sourceDom);
+        case 'customFunc':
+          if (action.customFunc) {
+            await action.customFunc(action, sourceDom, page);
           }
           break;
 
