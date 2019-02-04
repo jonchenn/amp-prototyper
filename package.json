@@ -4,8 +4,9 @@
   "description": "",
   "main": "main.js",
   "scripts": {
-    "start": "http-server test/",
-    "test": "http-server output/"
+    "test": "http-server test/",
+    "test-output": "http-server output/",
+    "start": "node run.js"
   },
   "repository": {
     "type": "git",
