@@ -7,6 +7,7 @@ const colors = require('colors');
 const amphtmlValidator = require('amphtml-validator');
 const purify = require("purify-css")
 const argv = require('minimist')(process.argv.slice(2));
+const CleanCSS = require('clean-css');
 const {
   JSDOM
 } = require("jsdom");
@@ -208,9 +209,12 @@ async function amplify(url, steps, argv) {
           if (!el) return `No matched regex: ${action.selector}`;
 
           body = sourceDom.querySelector('body');
-          let newStyles = purify(body.innerHTML, el.innerHTML);
+          let newStyles = new CleanCSS({}).minify(el.innerHTML).styles;
+
+          newStyles = purify(body.innerHTML, newStyles);
           let ratio = Math.round(
               (el.innerHTML.length - newStyles.length) / el.innerHTML.length * 100);
+          el.innerHTML = newStyles;
           message = `Removed ${ratio}% styles.`;
           break;
 
