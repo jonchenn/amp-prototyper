@@ -1,4 +1,4 @@
-const {amplify} = require('./easy-amplify-core');
+const {amplify} = require('../src/easy-amplify-core');
 const argv = require('minimist')(process.argv.slice(2));
 
 function printUsage() {
@@ -9,6 +9,7 @@ Required:
   --url=URL\tURL to the page to convert.
 
 Options:
+  --customSteps=FILE\tPath to the custom steps JS file.
   --output=FILE\tPath to the output file.
   --verbose\tDisplay AMP validation errors.
   `;
@@ -60,6 +61,12 @@ const steps = [
       selector: 'html',
       regex: '(<!--)?.*<(script|link) .*(src|href)=(?!"(%%DOMAIN%%|#)).*>.*(?:-->)?',
       replace: '',
+    }, {
+      log: 'Remove javascript:void(0)',
+      actionType: 'replace',
+      selector: 'html',
+      regex: 'javascript:.*void(0)',
+      replace: '',
     }],
   },
   {
@@ -67,21 +74,26 @@ const steps = [
     actions: [{
       log: 'Remove styles links',
       actionType: 'replace',
-      selector: 'html',
+      selector: 'head',
       regex: '(<!--)?.*<link.*rel="(text/css|stylesheet)".*>.*(?:-->)?',
       replace: '',
     }, {
-      log: 'append styles',
-      actionType: 'appendStyle',
-      selector: 'head',
-      excludeDomains: [],
-      attributes: ['amp-custom'],
+      log: 'Change inline CSS to <style amp-custom>',
+      actionType: 'replace',
+      selector: 'html',
+      regex: '<style(.*)>',
+      replace: '<style amp-custom $1>',
+    }, {
+      // log: 'Inline external CSS',
+      // actionType: 'appendStyle',
+      // selector: 'head',
+      // excludeDomains: [],
+      // attributes: ['amp-custom'],
     }, {
       actionType: 'replace',
       selector: 'html',
       regex: 'background: url\\("',
       replace: 'background: url("%%DOMAIN%%/',
-
     }],
   },
   {
@@ -176,7 +188,7 @@ const steps = [
   },
 ];
 
-let url = argv['url'], output = argv['output'];
+let url = argv['url'], output = argv['output'], customSteps = null;
 
 if (!url) {
   printUsage();

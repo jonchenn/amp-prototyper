@@ -8,7 +8,7 @@ const amphtmlValidator = require('amphtml-validator');
 const argv = require('minimist')(process.argv.slice(2));
 const { JSDOM } = require("jsdom");
 
-let outputPath, verbose, envVars;
+let outputPath, verbose, envVars, customSteps;
 let styleByUrls = {}, allStyles = '';
 var sourceDom = null;
 
@@ -43,17 +43,17 @@ async function validateAMP(html) {
   if (result.status === 'PASS') {
     console.log('\tAMP validation successful.'.green);
   } else {
+    if (verbose) {
+      result.errors.forEach((e) => {
+        var msg = `line ${e.line}, col ${e.col}: ${e.message}`;
+        if (e.specUrl !== null) {
+          msg += ` (see ${e.specUrl})`;
+        }
+        console.log('\t' + msg.dim);
+        allMsgs += msg + '\n';
+      });
+    }
     console.log(`\t${result.errors.length} AMP validation errors.`.red);
-    if (!verbose) return;
-
-    result.errors.forEach((e) => {
-      var msg = `line ${e.line}, col ${e.col}: ${e.message}`;
-      if (e.specUrl !== null) {
-        msg += ` (see ${e.specUrl})`;
-      }
-      console.log('\t' + msg.dim);
-      allMsgs += msg + '\n';
-    });
   }
   return Promise.resolve(allMsgs);
 }
@@ -61,6 +61,8 @@ async function validateAMP(html) {
 async function amplify(url, steps, argv) {
   argv = argv || {};
   outputPath = argv['output'] || '';
+  customSteps = argv['customSteps'] ?
+      require(`../${argv['customSteps']}`) : null;
   verbose = argv.hasOwnProperty('verbose');
 
   // Print warnings when missing necessary arguments.
@@ -68,6 +70,8 @@ async function amplify(url, steps, argv) {
     console.log('Missing url or steps.');
     return;
   }
+
+  steps = steps.concat(customSteps);
 
   let consoleOutputs = [];
   let domain = url.match(/(https|http)\:\/\/[\w.-]*/i)[0];
@@ -195,6 +199,12 @@ async function amplify(url, steps, argv) {
           });
           el.appendChild(newEl);
           message = 'styles appended';
+          break;
+
+        case 'custom':
+          if (action.function) {
+            action.function(action, sourceDom);
+          }
           break;
 
         default:
