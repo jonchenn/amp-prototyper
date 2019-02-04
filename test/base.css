@@ -27,3 +27,18 @@ button {
   padding: 10px;
   border: 2px solid #555;
 }
+
+#nonexist {
+  color: red;
+  border: #000 1px solid;
+}
+
+#nonexist a {
+  color: red;
+  border: #000 1px solid;
+}
+
+#nonexist a:hover {
+  color: red;
+  border: #000 1px solid;
+}

@@ -9,7 +9,8 @@ Required:
   --url=URL\tURL to the page to convert.
 
 Options:
-  --customSteps=FILE\tPath to the custom steps JS file.
+  --steps=FILE\tPath to the custom steps JS file.
+  --moreSteps=FILE\tPath to the more steps JS file.
   --output=FILE\tPath to the output file.
   --verbose\tDisplay AMP validation errors.
   `;
@@ -89,6 +90,10 @@ const steps = [
       selector: 'head',
       excludeDomains: [],
       attributes: ['amp-custom'],
+    }, {
+      log: 'Remove unused CSS',
+      actionType: 'removeUnusedStyles',
+      selector: 'head > style[amp-custom]',
     }, {
       actionType: 'replace',
       selector: 'html',
@@ -189,12 +194,17 @@ const steps = [
 ];
 
 let url = argv['url'], output = argv['output'];
-let customSteps = argv['customSteps'] ?
-    require(`../${argv['customSteps']}`) : null;
+let customSteps = argv['steps'] ?
+    require(`../${argv['steps']}`) : null;
+let moreSteps = argv['moreSteps'] ?
+    require(`../${argv['moreSteps']}`) : null;
 
 if (!url) {
   printUsage();
   return;
 }
 
-amplify(url, customSteps || steps, argv);
+let allSteps = customSteps || steps;
+if (moreSteps) allSteps = allSteps.concat(moreSteps);
+
+amplify(url, allSteps, argv);

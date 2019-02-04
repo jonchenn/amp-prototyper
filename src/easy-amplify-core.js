@@ -5,11 +5,15 @@ const path = require('path');
 const beautify = require('js-beautify').html;
 const colors = require('colors');
 const amphtmlValidator = require('amphtml-validator');
+const purify = require("purify-css")
 const argv = require('minimist')(process.argv.slice(2));
-const { JSDOM } = require("jsdom");
+const {
+  JSDOM
+} = require("jsdom");
 
 let outputPath, verbose, envVars;
-let styleByUrls = {}, allStyles = '';
+let styleByUrls = {},
+  allStyles = '';
 var sourceDom = null;
 
 function replaceEnvVars(str) {
@@ -27,7 +31,7 @@ async function outputToFile(filename, html, options) {
 }
 
 async function collectStyles(response) {
-  if(response.request().resourceType() === 'stylesheet') {
+  if (response.request().resourceType() === 'stylesheet') {
     let url = await response.url();
     let text = await response.text();
     allStyles += text;
@@ -100,7 +104,9 @@ async function amplify(url, steps, argv) {
   sourceDom = new JSDOM(pageSource).window.document;
   console.log('Start.');
   await outputToFile(`output-step-0.html`, pageSource);
-  await page.screenshot({path: `output/${outputPath}/output-step-0.png`});
+  await page.screenshot({
+    path: `output/${outputPath}/output-step-0.png`
+  });
 
   // Clear page.on listener.
   page.removeListener('response', collectStyles);
@@ -108,7 +114,7 @@ async function amplify(url, steps, argv) {
   let i = 1;
   let stepOutput = '';
 
-  for (let i=0; i<steps.length; i++) {
+  for (let i = 0; i < steps.length; i++) {
     let step = steps[i];
     consoleOutputs = [];
 
@@ -121,7 +127,7 @@ async function amplify(url, steps, argv) {
       });
 
       let message = action.actionType;
-      let el, html, regex, matches, newEl;
+      let el, html, regex, matches, newEl, body;
 
       switch (action.actionType) {
         case 'setAttribute':
@@ -197,6 +203,17 @@ async function amplify(url, steps, argv) {
           message = 'styles appended';
           break;
 
+        case 'removeUnusedStyles':
+          el = sourceDom.querySelector(action.selector);
+          if (!el) return `No matched regex: ${action.selector}`;
+
+          body = sourceDom.querySelector('body');
+          let newStyles = purify(body.innerHTML, el.innerHTML);
+          let ratio = Math.round(
+              (el.innerHTML.length - newStyles.length) / el.innerHTML.length * 100);
+          message = `Removed ${ratio}% styles.`;
+          break;
+
         case 'custom':
           if (action.function) {
             action.function(action, sourceDom);
@@ -223,7 +240,9 @@ async function amplify(url, steps, argv) {
       waitUntil: 'networkidle0',
     });
     await page.waitFor(200);
-    await page.screenshot({path: `output/${outputPath}/output-step-${i+1}.png`});
+    await page.screenshot({
+      path: `output/${outputPath}/output-step-${i+1}.png`
+    });
 
     // Validate AMP.
     let allErrors = await validateAMP(html);

@@ -27,6 +27,7 @@
     "jsdom": "^13.2.0",
     "minimist": "^1.2.0",
     "path": "^0.12.7",
-    "puppeteer": "^1.11.0"
+    "puppeteer": "^1.11.0",
+    "purify-css": "^1.2.5"
   }
 }
