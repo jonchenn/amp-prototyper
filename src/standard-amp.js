@@ -1,8 +1,45 @@
-const {amplify} = require('./easy-amplify-core');
+const {amplify} = require('../src/easy-amplify-core');
 const argv = require('minimist')(process.argv.slice(2));
 
-const url ='http://127.0.0.1:8080';
+function printUsage() {
+  let usage = `
+Usage: node main.js
+
+Required:
+  --url=URL\tURL to the page to convert.
+  --output=FILE\tPath to the output file.
+
+Options:
+  --verbose\tDisplay AMP validation errors.
+  `;
+  console.log(usage);
+}
+
 const steps = [
+  {
+    name: 'Make relative URLs absolute',
+    actions: [{
+      log: 'Update relative URLs',
+      actionType: 'replace',
+      selector: 'html',
+      regex: '(href|src)="\/(\\w)',
+      replace: '$1="%%DOMAIN%%/$2',
+    }],
+  },
+  {
+    name: 'Remove unwanted styles',
+    actions: [{
+      actionType: 'replace',
+      selector: 'html',
+      regex: 'html {  display:none;visibility:hidden; }',
+      replace: '',
+    }, {
+      actionType: 'replace',
+      selector: 'html',
+      regex: 'body {display:none;visibility:hidden;}',
+      replace: '',
+    }],
+  },
   {
     name: 'Clean up unsupported elements',
     actions: [{
@@ -21,18 +58,30 @@ const steps = [
       log: 'Remove third-party elements',
       actionType: 'replace',
       selector: 'html',
-      regex: '(<!--)?.*<(script|link) .*(src|href)=(?!"(%%URL%%|#)).*>.*(?:-->)?',
+      regex: '(<!--)?.*<(script|link) .*(src|href)=(?!"(%%DOMAIN%%|#)).*>.*(?:-->)?',
       replace: '',
     }],
   },
   {
     name: 'Inline all CSS styles in <head>',
     actions: [{
+      log: 'Remove styles links',
+      actionType: 'replace',
+      selector: 'html',
+      regex: '(<!--)?.*<link.*rel="(text/css|stylesheet)".*>.*(?:-->)?',
+      replace: '',
+    }, {
       log: 'append styles',
       actionType: 'appendStyle',
       selector: 'head',
       excludeDomains: [],
       attributes: ['amp-custom'],
+    }, {
+      actionType: 'replace',
+      selector: 'html',
+      regex: 'background: url\\("',
+      replace: 'background: url("%%DOMAIN%%/',
+
     }],
   },
   {
@@ -52,16 +101,6 @@ const steps = [
     }],
   },
   {
-    name: 'Make relative URLs absolute',
-    actions: [{
-      log: 'Update relative URLs',
-      actionType: 'replace',
-      selector: 'html',
-      regex: '(href|src)=\"([/a-zA-Z0-9\.]+)\"',
-      replace: '$1="%%URL%%/$2"',
-    }],
-  },
-  {
     name: 'Add AMP JS library and AMP boilerplate',
     actions: [{
       log: 'Set HTML tag with AMP',
@@ -70,15 +109,20 @@ const steps = [
       attribute: 'amp',
       value: '',
     }, {
+      log: 'Add preload to AMP JS library.',
+      actionType: 'appendAfter',
+      selector: 'title',
+      value: '<link rel="preload" as="script" href="https://cdn.ampproject.org/v0.js">',
+    }, {
       log: 'Add AMP JS library.',
-      actionType: 'insertBottom',
-      selector: 'head',
+      actionType: 'appendAfter',
+      selector: 'title',
       value: '<script async src="https://cdn.ampproject.org/v0.js"></script>',
     }, {
       log: 'Update viewport',
       actionType: 'replaceOrInsert',
       selector: 'head',
-      regex: '<meta name="viewport"([\sa-zA-Z1-9=\"\-\,]*)>',
+      regex: '<meta name="viewport"([\\sa-zA-Z1-9=\"\-\,]*)>',
       replace: '<meta name="viewport" content="width=device-width,minimum-scale=1,initial-scale=1">',
     }, {
       log: 'Update charset to UTF-8',
@@ -88,13 +132,13 @@ const steps = [
       replace: '<meta charset="utf-8">',
     }, {
       log: 'Add canonical link.',
-      actionType: 'insertBottom',
-      selector: 'head',
+      actionType: 'appendAfter',
+      selector: 'title',
       value: '<link rel=canonical href="%%URL%%">',
     }, {
       log: 'Add AMP boilerplate.',
-      actionType: 'insertBottom',
-      selector: 'head',
+      actionType: 'appendAfter',
+      selector: 'title',
       value: '<style amp-boilerplate>body{-webkit-animation:-amp-start 8s steps(1,end) 0s 1 normal both;-moz-animation:-amp-start 8s steps(1,end) 0s 1 normal both;-ms-animation:-amp-start 8s steps(1,end) 0s 1 normal both;animation:-amp-start 8s steps(1,end) 0s 1 normal both}@-webkit-keyframes -amp-start{from{visibility:hidden}to{visibility:visible}}@-moz-keyframes -amp-start{from{visibility:hidden}to{visibility:visible}}@-ms-keyframes -amp-start{from{visibility:hidden}to{visibility:visible}}@-o-keyframes -amp-start{from{visibility:hidden}to{visibility:visible}}@keyframes -amp-start{from{visibility:hidden}to{visibility:visible}}</style><noscript><style amp-boilerplate>body{-webkit-animation:none;-moz-animation:none;-ms-animation:none;animation:none}</style></noscript>',
     }],
   },
@@ -127,5 +171,12 @@ const steps = [
     }],
   },
 ];
+
+let url = argv['url'], output = argv['output'];
+
+if (!url || !output) {
+  printUsage();
+  return;
+}
 
 amplify(url, steps, argv);

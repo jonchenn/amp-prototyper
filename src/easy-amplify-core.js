@@ -12,20 +12,6 @@ let outputPath, verbose, envVars;
 let styleByUrls = {}, allStyles = '';
 var sourceDom = null;
 
-function printUsage() {
-  let usage = `
-Usage: node main.js
-
-Required:
-  --url=URL\tURL to the page to convert.
-  --output=FILE\tPath to the output file.
-
-Options:
-  --verbose\tDisplay AMP validation errors.
-  `;
-  console.log(usage);
-}
-
 function replaceEnvVars(str) {
   Object.keys(envVars).forEach((key) => {
     if (typeof str === 'string') {
@@ -73,10 +59,6 @@ async function amplify(url, steps, argv) {
   argv = argv || {};
   outputPath = argv['output'];
   verbose = argv.hasOwnProperty('verbose');
-  envVars = {
-    '%%URL%%': encodeURI(url),
-  };
-
   // Print usage when missing necessary arguments.
   if (!url || !steps || !outputPath) {
     printUsage();
@@ -84,6 +66,20 @@ async function amplify(url, steps, argv) {
   }
 
   let consoleOutputs = [];
+  let domain = url.match(/(https|http)\:\/\/[\w.-]*/i)[0];
+  if (!domain) {
+    throw new Error('Unable to get domain from ' + url);
+  }
+
+  envVars = {
+    '%%URL%%': encodeURI(url),
+    '%%DOMAIN%%': domain,
+  };
+
+  console.log('Url: ' + url.green);
+  console.log('Domain: ' + domain.green);
+
+  // Start puppeteer.
   const browser = await puppeteer.launch({
     headless: true,
   });
@@ -98,7 +94,7 @@ async function amplify(url, steps, argv) {
   const response = await page.goto(url);
   let pageSource = await response.text();
   sourceDom = new JSDOM(pageSource).window.document;
-  console.log(`Open ${url}`.green);
+  console.log('Start.');
   await outputToFile(`output-step-0.html`, pageSource);
   await page.screenshot({path: `output/${outputPath}/output-step-0.png`});
 
