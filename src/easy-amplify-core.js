@@ -254,7 +254,9 @@ async function amplify(url, steps, argv) {
 
     // Validate AMP.
     let allErrors = await validateAMP(html);
-    await outputToFile(`output-step-${i+1}-log.txt`, allErrors);
+    if (allErrors) {
+      await outputToFile(`output-step-${i+1}-log.txt`, allErrors);
+    }
   }
 
   await browser.close();
