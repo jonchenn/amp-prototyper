@@ -9,14 +9,14 @@ node run.js --url=[URL]
 ```
 
 Required arguments:
-*  --url=URL\tURL to the page to convert.
+*  --url=URL: URL to the page to convert.
 
 ### Options
 
-*  --steps=FILE\tPath to the custom steps JS file.
-*  --moreSteps=FILE\tPath to the more steps JS file.
-*  --output=FILE\tPath to the output file.
-*  --verbose\tDisplay AMP validation errors.
+*  --steps=FILE: Path to the custom steps JS file.
+*  --moreSteps=FILE: Path to the more steps JS file.
+*  --output=FILE: Path to the output file.
+*  --verbose: Display AMP validation errors.
 
 Examples:
 
