@@ -18,7 +18,7 @@ Required arguments:
 *  --output=FILE: Path to the output file.
 *  --verbose: Display AMP validation errors.
 
-Examples:
+### Examples:
 
 ```
 # Amplify a page and generate results in /output folder.
