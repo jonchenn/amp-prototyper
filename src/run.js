@@ -84,11 +84,11 @@ const steps = [
       regex: '<style(.*)>',
       replace: '<style amp-custom $1>',
     }, {
-      // log: 'Inline external CSS',
-      // actionType: 'appendStyle',
-      // selector: 'head',
-      // excludeDomains: [],
-      // attributes: ['amp-custom'],
+      log: 'Inline external CSS',
+      actionType: 'appendStyle',
+      selector: 'head',
+      excludeDomains: [],
+      attributes: ['amp-custom'],
     }, {
       actionType: 'replace',
       selector: 'html',
@@ -188,11 +188,13 @@ const steps = [
   },
 ];
 
-let url = argv['url'], output = argv['output'], customSteps = null;
+let url = argv['url'], output = argv['output'];
+let customSteps = argv['customSteps'] ?
+    require(`../${argv['customSteps']}`) : null;
 
 if (!url) {
   printUsage();
   return;
 }
 
-amplify(url, steps, argv);
+amplify(url, customSteps || steps, argv);

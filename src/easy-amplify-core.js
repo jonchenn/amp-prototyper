@@ -8,7 +8,7 @@ const amphtmlValidator = require('amphtml-validator');
 const argv = require('minimist')(process.argv.slice(2));
 const { JSDOM } = require("jsdom");
 
-let outputPath, verbose, envVars, customSteps;
+let outputPath, verbose, envVars;
 let styleByUrls = {}, allStyles = '';
 var sourceDom = null;
 
@@ -61,8 +61,6 @@ async function validateAMP(html) {
 async function amplify(url, steps, argv) {
   argv = argv || {};
   outputPath = argv['output'] || '';
-  customSteps = argv['customSteps'] ?
-      require(`../${argv['customSteps']}`) : null;
   verbose = argv.hasOwnProperty('verbose');
 
   // Print warnings when missing necessary arguments.
@@ -70,8 +68,6 @@ async function amplify(url, steps, argv) {
     console.log('Missing url or steps.');
     return;
   }
-
-  steps = steps.concat(customSteps);
 
   let consoleOutputs = [];
   let domain = url.match(/(https|http)\:\/\/[\w.-]*/i)[0];
