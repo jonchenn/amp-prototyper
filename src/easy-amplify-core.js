@@ -209,13 +209,17 @@ async function amplify(url, steps, argv) {
           if (!el) return `No matched regex: ${action.selector}`;
 
           body = sourceDom.querySelector('body');
+          let oldSize = el.innerHTML.length;
           let newStyles = new CleanCSS({}).minify(el.innerHTML).styles;
 
-          newStyles = purify(body.innerHTML, newStyles);
+          newStyles = purify(body.innerHTML, newStyles, {
+            minify: true,
+          });
           let ratio = Math.round(
-              (el.innerHTML.length - newStyles.length) / el.innerHTML.length * 100);
+              (oldSize - newStyles.length) / oldSize * 100);
           el.innerHTML = newStyles;
-          message = `Removed ${ratio}% styles.`;
+
+          message = `Removed ${ratio}% styles. (${oldSize} -> ${newStyles.length})`;
           break;
 
         case 'custom':
