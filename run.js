@@ -32,4 +32,6 @@ if (!url) {
 let allSteps = customSteps || steps;
 if (moreSteps) allSteps = allSteps.concat(moreSteps);
 
+if (customSteps) console.log(`Use custom steps ${argv['steps']}`);
+
 amplify(url, allSteps, argv);
