@@ -71,7 +71,7 @@ You can also run a sample HTML with following:
 
 ```
 # Run a localhost web server using http-server.
-yarn test
+yarn sample
 ```
 
 This opens up a localhost web server at http://127.0.0.1:8080 by default that

@@ -4,7 +4,7 @@
   "description": "",
   "main": "main.js",
   "scripts": {
-    "test": "http-server test/",
+    "sample": "http-server sample_web/",
     "test-output": "http-server output/",
     "start": "node run.js"
   },
