@@ -40,14 +40,14 @@ yarn start --url=[URL]
 ```
 
 Required arguments:
-*  --url=URL: URL to the page to convert.
+*  `--url=URL` - URL to the page to convert.
 
 ### Options
 
-*  --steps=FILE: Path to the custom steps JS file.
-*  --moreSteps=FILE: Path to the more steps JS file.
-*  --output=FILE: Path to the output file.
-*  --verbose: Display AMP validation errors.
+*  `--steps=FILE` - Path to the custom steps JS file.
+*  `--moreSteps=FILE` - Path to the more steps JS file.
+*  `--output=FILE` - Path to the output file.
+*  `--verbose` - Display AMP validation errors.
 
 ### Examples:
 
@@ -99,9 +99,9 @@ yarn start --url=http://127.0.0.1:8080 --steps=custom/mysteps.js
 
 At each step, it executes a set of actions and writes the files below to the
 output/ folder:
-* output-step-[STEP_ID].html - the modified HTML.
-* output-step-[STEP_ID].png - the screenshot after this step.
-* (With --verbose) output-step-[STEP_ID]-log.txt - AMP validation errors from console output.
+* `output-step-[STEP_ID].html` - the modified HTML.
+* `output-step-[STEP_ID].png` - the screenshot after this step.
+* `output-step-[STEP_ID]-log.txt` (only with --verbose) - AMP validation errors from console output.
 
 ## Customize steps
 
@@ -133,40 +133,68 @@ Step properties:
 * `actions`<Array<[Action]()>> - actions to execute.
 * `skip` <boolean> - Whether to skip this step.
 
-### Supported actions:
-
 Common properties of an action:
 
+* `actionType` <string> - Action type.
 * `log` <string> - Message output of this action.
 * `waitAfterLoaded` <int> - Wait for a specific milliseconds after the page loaded.
+
+### Supported actions:
 
 #### setAttribute
 
 Set an attribute to a specific element.
 
+* `log` <string> - Message output of this action.
+* `waitAfterLoaded` <int> - Wait for a specific milliseconds after the page loaded.
+
 #### replace
 
 Use Regex to find and replace in the DOM.
+
+* `selector` <string> - affected element.
+* `regex` <string> - Regex string to match.
+* `replace` <string> - Replace matches with this string.
 
 #### replaceOrInsert
 
 Use Regex to find and replace in the DOM. If not found, insert to the destination element.
 
+* `selector` <string> - affected element.
+* `regex` <string> - Regex string to match.
+* `replace` <string> - Replace matches with this string.
+
 #### insertBottom
 
-Insert a string to a specific element.
+Insert a string to the bottom of a specific element. E.g. adding a string
+to the bottom of the <head> DOM.
+
+* `selector` <string> - target element.
+* `value` <string> - the string to insert.
 
 #### appendAfter
 
 Append a string right after a specific element.
 
+* `selector` <string> - target element.
+* `value` <string> - the string to append.
+
 #### inlineExternalStyles
 
-Collect all external styles and add as inline styles.
+Collect all external CSS and append a <style> tag with inline CSS.
+
+* `selector` <string> - target element to append the CSS.
+* `value` <string> - the string to append.
+* `excludeDomains` <Array<string>> - the array of excluded domains. E.g. `['examples.com']` excludes all CSS loaded from `examples.com`.
+* `minify` <boolean> - whether to minify CSS.
+* `attributes` <Array<string>> - add attributes when appending <style> tag.
 
 #### removeUnusedStyles
 
 Remove unused CSS using [clean-css](https://github.com/jakubpawlowicz/clean-css) and [purifycss](https://github.com/purifycss/purifycss).
+
+* `selector` <string> - target element.
+* `value` <string> - the string to append.
 
 #### customFunc
 
