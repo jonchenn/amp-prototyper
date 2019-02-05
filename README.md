@@ -1,6 +1,6 @@
 # easy-amplify
 
-This Node.js-based script aims for automating the process of making a HTML page
+This Node.js-based script aims to automate the process of converting a HTML page
 to a [Accelerated Mobile Page (AMP)](https://www.ampproject.org). It follows
 [the general guideline of converting HTML to AMP](https://www.ampproject.org/docs/fundamentals/converting).
 
@@ -14,11 +14,12 @@ to a [Accelerated Mobile Page (AMP)](https://www.ampproject.org). It follows
 
 The main goal is to minimize the effort of converting HTML to AMP, including
 adding AMP boilerplate, removing custom Javascript, making all CSS inline, etc.
+The outcome of this tool includes converted AMP, the screenshot, and AMP
+validation errors for each conversion step.
 
 However, as there are many edge cases when converting a HTML to AMP, this
-project doesn't aim for creating an ultimate tool that perfectly converts any
-HTML page to AMP. Instead, the outcome of this tool includes converted AMP,
-the screenshot, and AMP validation errors for each step.
+project doesn't aim for an ultimate tool that perfectly converts any
+HTML page to AMP.
 
 This script uses [puppeteer](https://github.com/GoogleChrome/puppeteer) to load
 and render pages.
