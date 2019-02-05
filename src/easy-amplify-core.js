@@ -128,7 +128,7 @@ async function amplify(url, steps, argv) {
       });
 
       let message = action.actionType;
-      let el, html, regex, matches, newEl, body;
+      let el, html, regex, matches, newEl, body, newStyles;
 
       if (action.waitAfterLoaded) {
         await page.waitFor(action.waitAfterLoaded);
@@ -193,12 +193,15 @@ async function amplify(url, steps, argv) {
           message = 'dom appended';
           break;
 
-        case 'appendStyle':
+        case 'inlineExternalStyles':
           el = sourceDom.querySelector(action.selector);
           if (!el) return `No matched regex: ${action.selector}`;
 
+          newStyles = action.minify ?
+            new CleanCSS({}).minify(allStyles).styles : allStyles;
+
           newEl = sourceDom.createElement('style');
-          newEl.appendChild(sourceDom.createTextNode(allStyles));
+          newEl.appendChild(sourceDom.createTextNode(newStyles));
           action.attributes.forEach((attr) => {
             let key, value;
             [key, value] = attr.split('=');
@@ -214,10 +217,10 @@ async function amplify(url, steps, argv) {
 
           body = sourceDom.querySelector('body');
           let oldSize = el.innerHTML.length;
-          let newStyles = new CleanCSS({}).minify(el.innerHTML).styles;
+          newStyles = new CleanCSS({}).minify(el.innerHTML).styles;
 
           newStyles = purify(body.innerHTML, newStyles, {
-            minify: true,
+            minify: action.minify || false,
           });
           let ratio = Math.round(
               (oldSize - newStyles.length) / oldSize * 100);

@@ -105,11 +105,99 @@ output/ folder:
 
 ## Customize steps
 
-TBD
-
-## Structure of steps
+### Structure of steps
 
 You can check out the default steps at [src/default-steps.js](https://github.com/jonchenn/easy-amplify/blob/master/src/default-steps.js).
 
+Each step follows the structure below.
+
+```
+{
+  name: 'Name of the step',
+  actions: [{
+    log: 'Log output for this action',
+    actionType: 'replace',
+    selector: 'html',
+    regex: '<div(.*)>(.*)</div>',
+    replace: '<span$1>$2</span>',
+  }, {
+    ...
+  }],
+},
+
+```
+
+Step properties:
+
+* `name` <string> - Step name.
+* `actions`<Array<[Action]()>> - actions to execute.
+* `skip` <boolean> - Whether to skip this step.
+
+### Supported actions:
+
+Common properties of an action:
+
+* `log` <string> - Message output of this action.
+* `waitAfterLoaded` <int> - Wait for a specific milliseconds after the page loaded.
+
+#### setAttribute
+
+Set an attribute to a specific element.
+
+#### replace
+
+Use Regex to find and replace in the DOM.
+
+#### replaceOrInsert
+
+Use Regex to find and replace in the DOM. If not found, insert to the destination element.
+
+#### insertBottom
+
+Insert a string to a specific element.
+
+#### appendAfter
+
+Append a string right after a specific element.
+
+#### inlineExternalStyles
+
+Collect all external styles and add as inline styles.
+
+#### removeUnusedStyles
+
+Remove unused CSS using [clean-css](https://github.com/jakubpawlowicz/clean-css) and [purifycss](https://github.com/purifycss/purifycss).
+
+#### customFunc
+
+Run the action with a custom function. Example:
+
+```
+  # An action object.
+  {
+    log: 'Click a button',
+    actionType: 'customFunc',
+    waitAfterLoaded: 1000,
+    customFunc: async (action, sourceDom, page) => {
+      await page.click('button#summit');
+    },
+  }],
+},
+
+```
+
+In the custom function, there are three arguments:
+
+* `action` <ActionObject> - the action object itself.
+* `sourceDom` <DOM document> - the raw DOM document object before rendering, as in the View Source in Chrome.
+* `page` <puppeteer Page object> - The page object in puppeteer.
+
+### Creating your customized steps
+
+TBD
 
 ## Reference
+
+* [puppeteer](https://github.com/GoogleChrome/puppeteer)
+* [clean-css](https://github.com/jakubpawlowicz/clean-css)
+* [purifycss](https://github.com/purifycss/purifycss)

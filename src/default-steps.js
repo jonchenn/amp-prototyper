@@ -53,14 +53,16 @@ module.exports = [
       replace: '<style amp-custom $1>',
     }, {
       log: 'Inline external CSS',
-      actionType: 'appendStyle',
+      actionType: 'inlineExternalStyles',
       selector: 'head',
       excludeDomains: [],
+      minify: true,
       attributes: ['amp-custom'],
     }, {
       log: 'Remove unused CSS',
       actionType: 'removeUnusedStyles',
       selector: 'head > style[amp-custom]',
+      minify: true,
     }, {
       actionType: 'replace',
       selector: 'html',
