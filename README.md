@@ -76,7 +76,14 @@ yarn test
 
 This opens up a localhost web server at http://127.0.0.1:8080 by default that
 serves [test/index.html](https://github.com/jonchenn/easy-amplify/blob/master/test/index.html).
-This is a quick and simple HTML page to test easy-amplify.
+This is a quick and simple HTML page to test easy-amplify. You can run the following to see how easy-amplify works.
+
+```
+# Amplify the page at localhost and output in sample/ folder.
+yarn start --url=http://127.0.0.1:8080 --output=sample
+```
+
+Then, check out the `./output/sample`, and you will see a list of output files.
 
 ## Output of each step
 
@@ -152,7 +159,7 @@ Set an attribute to a specific element.
 
 Use Regex to find and replace in the DOM.
 
-* `selector` <string> - affected element.
+* `selector` <string> - target element.
 * `regex` <string> - Regex string to match.
 * `replace` <string> - Replace matches with this string.
 
@@ -160,7 +167,7 @@ Use Regex to find and replace in the DOM.
 
 Use Regex to find and replace in the DOM. If not found, insert to the destination element.
 
-* `selector` <string> - affected element.
+* `selector` <string> - target element.
 * `regex` <string> - Regex string to match.
 * `replace` <string> - Replace matches with this string.
 
@@ -205,7 +212,6 @@ Run the action with a custom function. Example:
   {
     log: 'Click a button',
     actionType: 'customFunc',
-    waitAfterLoaded: 1000,
     customFunc: async (action, sourceDom, page) => {
       await page.click('button#summit');
     },
@@ -220,9 +226,39 @@ In the custom function, there are three arguments:
 * `sourceDom` <DOM document> - the raw DOM document object before rendering, as in the View Source in Chrome.
 * `page` <puppeteer Page object> - The page object in puppeteer.
 
-### Creating your customized steps
+### Customize steps
 
-TBD
+To customize your own steps for specific scenarios, create a .js file like below:
+
+```
+module.exports = [
+  {
+    name: 'Remove unwanted styles',
+    actions: [{
+      log: 'Remove inline styles in body',
+      actionType: 'replace',
+      selector: 'body',
+      regex: '(<!--)?.*<style[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>.*(-->)?',
+      replace: '',
+    }, {
+      log: 'Remove noscript in body',
+      actionType: 'replace',
+      selector: 'body',
+      regex: '(<!--)?.*<noscript[^<]*(?:(?!<\/noscript>)<[^<]*)*<\/noscript>.*(-->)?',
+      replace: '',
+    }],
+  }, {
+    ...
+  }
+];
+```
+
+Next, run the script with `--steps=/path/to/mysteps.js`:
+
+```
+# Amplify a page with customized steps.
+yarn start --url=http://127.0.0.1:8080 --steps=/path/to/mysteps.js
+```
 
 ## Reference
 
