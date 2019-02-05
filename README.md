@@ -45,7 +45,6 @@ Required arguments:
 ### Options
 
 *  `--steps=FILE` - Path to the custom steps JS file.
-*  `--moreSteps=FILE` - Path to the more steps JS file.
 *  `--output=FILE` - Path to the output file.
 *  `--verbose` - Display AMP validation errors.
 

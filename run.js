@@ -4,16 +4,28 @@ const steps = require('./src/default-steps.js')
 
 function printUsage() {
   let usage = `
-Usage: node run.js --url=[URL]
+Usage: yarn start --url=[URL]
 
 Required:
   --url=URL\tURL to the page to convert.
 
 Options:
   --steps=FILE\tPath to the custom steps JS file.
-  --moreSteps=FILE\tPath to the more steps JS file.
   --output=FILE\tPath to the output file.
   --verbose\tDisplay AMP validation errors.
+
+Examples:
+  # Amplify a page and generate results in /output folder.
+  yarn start --url=http://127.0.0.1:8080
+
+  # Amplify a page and generate results in /output/test folder.
+  yarn start --url=http://127.0.0.1:8080 --output=test
+
+  # Amplify a page with customized steps.
+  yarn start --url=http://127.0.0.1:8080 --steps=custom/mysteps.js
+
+  # Amplify a page and display AMP validation details.
+  yarn start --url=http://127.0.0.1:8080 --verbose
   `;
   console.log(usage);
 }
