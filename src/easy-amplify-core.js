@@ -67,6 +67,8 @@ async function amplify(url, steps, argv) {
   argv = argv || {};
   outputPath = argv['output'] || '';
   verbose = argv.hasOwnProperty('verbose');
+  let device = argv['device'] || 'Pixel 2'
+  let isHeadless = argv['headless'] ? argv['headless'] === 'true' : true;
 
   // Print warnings when missing necessary arguments.
   if (!url || !steps) {
@@ -90,10 +92,10 @@ async function amplify(url, steps, argv) {
 
   // Start puppeteer.
   const browser = await puppeteer.launch({
-    headless: true,
+    headless: isHeadless,
   });
   const page = await browser.newPage();
-  await page.emulate(devices['Pixel 2']);
+  await page.emulate(devices[device]);
   page.on('response', collectStyles);
   page.on('console', (consoleObj) => {
     consoleOutputs.push(consoleObj.text());

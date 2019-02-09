@@ -47,6 +47,8 @@ Required arguments:
 
 *  `--steps=FILE` - Path to the custom steps JS file.
 *  `--output=FILE` - Path to the output file.
+*  `--device=DEVICE_NAME` - Use specific device name for screenshots.
+*  `--headless=(true|false)` - Whether to show browser.
 *  `--verbose` - Display AMP validation errors.
 
 ### Examples:
@@ -63,6 +65,12 @@ yarn start --url=http://127.0.0.1:8080 --steps=custom/mysteps.js
 
 # Amplify a page and display AMP validation details.
 yarn start --url=http://127.0.0.1:8080 --verbose
+
+# Amplify a page and generate screenshots with specific Device.
+yarn start --url=http://127.0.0.1:8080 --device='Pixel 2'
+
+# Amplify a page and display browser.
+yarn start --url=http://127.0.0.1:8080 --headless=false
 ```
 
 ### Test with a sample HTML.
