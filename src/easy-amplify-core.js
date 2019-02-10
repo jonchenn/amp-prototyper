@@ -77,7 +77,7 @@ async function amplify(url, steps, argv) {
   }
 
   let consoleOutputs = [];
-  let domain = url.match(/(https|http)\:\/\/[\w.-]*/i)[0];
+  let domain = url.match(/(https|http)\:\/\/[\w.-]*(\:\d+)?/i)[0];
   if (!domain) {
     throw new Error('Unable to get domain from ' + url);
   }
@@ -220,9 +220,12 @@ async function amplify(url, steps, argv) {
           var firstEl = elements[0];
           elements.forEach((el) => {
             mergedContent += el.innerHTML + '\n';
-            if (el !== firstEl) el.parentNode.removeChild(el);
+            el.parentNode.removeChild(el);
           });
+
+          el = sourceDom.querySelector(action.targetSelector);
           firstEl.innerHTML = mergedContent;
+          el.innerHTML += firstEl.outerHTML;
           message = `Merged ${elements.length} doms`;
           break;
 
@@ -235,7 +238,7 @@ async function amplify(url, steps, argv) {
 
           newEl = sourceDom.createElement('style');
           newEl.appendChild(sourceDom.createTextNode(newStyles));
-          action.attributes.forEach((attr) => {
+          (action.attributes || []).forEach((attr) => {
             let key, value;
             [key, value] = attr.split('=');
             newEl.setAttribute(key, value || '');

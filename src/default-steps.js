@@ -57,11 +57,11 @@ module.exports = [
       selector: 'head',
       excludeDomains: [],
       minify: true,
-      attributes: ['amp-custom'],
     }, {
-      log: 'Merge all inline CSS to the first <style> dom.',
+      log: 'Merge all inline CSS to the head.',
       actionType: 'mergeContent',
       selector: 'style:not([amp-boilerplate])',
+      targetSelector: 'head',
     }, {
       log: 'Change inline CSS to <style amp-custom>',
       actionType: 'replace',
