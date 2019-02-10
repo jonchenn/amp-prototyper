@@ -5,8 +5,14 @@ module.exports = [
       log: 'Update relative URLs',
       actionType: 'replace',
       selector: 'html',
-      regex: '(href|src)="\/(\\w)',
-      replace: '$1="%%DOMAIN%%/$2',
+      regex: '(href|src)="(\\.*\/)?(\\w)',
+      replace: '$1="%%DOMAIN%%/$2$3',
+    }, {
+      log: 'Update relative URLs in CSS.',
+      actionType: 'replace',
+      selector: 'html',
+      regex: 'background: url\\("(\\.*\/)?(\\w)',
+      replace: 'background: url("%%DOMAIN%%/$1$2',
     }],
   },
   {
@@ -21,7 +27,7 @@ module.exports = [
       log: 'Remove inline scripts',
       actionType: 'replace',
       selector: 'html',
-      regex: '(<!--)?.*<script[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>.*(-->)?',
+      regex: '(<!--)?.*<script[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>.*(?:-->)?',
       replace: '',
     }, {
       log: 'Remove third-party elements',
@@ -46,12 +52,6 @@ module.exports = [
       regex: '(<!--)?.*<link.*rel="(text/css|stylesheet)".*>.*(?:-->)?',
       replace: '',
     }, {
-      log: 'Change inline CSS to <style amp-custom>',
-      actionType: 'replace',
-      selector: 'html',
-      regex: '<style(.*)>',
-      replace: '<style amp-custom $1>',
-    }, {
       log: 'Inline external CSS',
       actionType: 'inlineExternalStyles',
       selector: 'head',
@@ -59,15 +59,31 @@ module.exports = [
       minify: true,
       attributes: ['amp-custom'],
     }, {
+      log: 'Merge all inline CSS to the first <style> dom.',
+      actionType: 'mergeContent',
+      selector: 'style:not([amp-boilerplate])',
+    }, {
+      log: 'Change inline CSS to <style amp-custom>',
+      actionType: 'replace',
+      selector: 'html',
+      regex: '<style(.*)>',
+      replace: '<style amp-custom $1>',
+    }, {
       log: 'Remove unused CSS',
       actionType: 'removeUnusedStyles',
       selector: 'head > style[amp-custom]',
       minify: true,
     }, {
+      log: 'Remove media attribute in style tag.',
+      actionType: 'removeAttribute',
+      selector: 'style',
+      attribute: 'media',
+    }, {
+      log: 'Remove !important flag',
       actionType: 'replace',
-      selector: 'html',
-      regex: 'background: url\\("',
-      replace: 'background: url("%%DOMAIN%%/',
+      selector: 'style',
+      regex: '\\!important',
+      replace: '',
     }],
   },
   {
@@ -138,7 +154,7 @@ module.exports = [
       log: 'replace img to amp-img',
       actionType: 'replace',
       selector: 'html',
-      regex: '<img(.*)>(</img>)?',
+      regex: '<img ((\\w*="[\\w\\d:\\/\\.\\s-\'’]*"\\s?)*)>',
       replace: '<amp-img $1></amp-img>',
     }, {
       log: 'Set responsive layout',

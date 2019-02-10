@@ -104,9 +104,11 @@ async function amplify(url, steps, argv) {
   // Open URL and save source to sourceDom.
   const response = await page.goto(url);
   let pageSource = await response.text();
-  sourceDom = new JSDOM(pageSource).window.document;
+  let pageContent = await page.content();
+  sourceDom = new JSDOM(pageContent).window.document;
+
   console.log('Start.');
-  await outputToFile(`output-step-0.html`, pageSource);
+  await outputToFile(`output-step-0.html`, pageContent);
   await page.screenshot({
     path: `output/${outputPath}/output-step-0.png`
   });
@@ -130,7 +132,7 @@ async function amplify(url, steps, argv) {
       });
 
       let message = action.actionType;
-      let el, html, regex, matches, newEl, body, newStyles;
+      let elements, el, html, regex, matches, newEl, body, newStyles;
 
       if (action.waitAfterLoaded) {
         await page.waitFor(action.waitAfterLoaded);
@@ -138,21 +140,35 @@ async function amplify(url, steps, argv) {
 
       switch (action.actionType) {
         case 'setAttribute':
-          el = sourceDom.querySelector(action.selector);
-          el.setAttribute(action.attribute, action.value);
+          elements = sourceDom.querySelectorAll(action.selector);
+          elements.forEach((el) => {
+            el.setAttribute(action.attribute, action.value);
+          });
           message = `set ${action.attribute} as ${action.value}`;
           break;
 
-        case 'replace':
-          el = sourceDom.querySelector(action.selector);
-          if (!el) return `No matched regex: ${action.selector}`;
+        case 'removeAttribute':
+          elements = sourceDom.querySelectorAll(action.selector);
+          elements.forEach((el) => {
+            el.removeAttribute(action.attribute);
+          });
+          message = `remove ${action.attribute} from ${elements.length} elements`;
+          break;
 
-          html = el.outerHTML;
-          regex = new RegExp(action.regex, 'ig');
-          matches = html.match(regex, 'ig');
-          html = html.replace(regex, action.replace);
-          el.innerHTML = html;
-          message = `${matches ? matches.length : 0} replaced`;
+        case 'replace':
+          var numReplaced = 0;
+          elements = sourceDom.querySelectorAll(action.selector);
+          if (!elements.length) return `No matched regex: ${action.selector}`;
+
+          elements.forEach((el) => {
+            html = el.outerHTML;
+            regex = new RegExp(action.regex, 'ig');
+            matches = html.match(regex, 'ig');
+            numReplaced += matches ? matches.length : 0;
+            html = html.replace(regex, action.replace);
+            el.innerHTML = html;
+          });
+          message = `${numReplaced} replaced`;
           break;
 
         case 'replaceOrInsert':
@@ -192,7 +208,22 @@ async function amplify(url, steps, argv) {
           Array.from(newEl.content.childNodes).forEach((node) => {
             el.parentNode.insertBefore(node, el.nextSibling);
           });
-          message = 'dom appended';
+          message = 'Dom appended';
+          break;
+
+        // Merge multiple DOMs into one.
+        case 'mergeContent':
+          elements = sourceDom.querySelectorAll(action.selector);
+          if (!elements.length) return `No matched regex: ${action.selector}`;
+
+          var mergedContent = '';
+          var firstEl = elements[0];
+          elements.forEach((el) => {
+            mergedContent += el.innerHTML + '\n';
+            if (el !== firstEl) el.parentNode.removeChild(el);
+          });
+          firstEl.innerHTML = mergedContent;
+          message = `Merged ${elements.length} doms`;
           break;
 
         case 'inlineExternalStyles':
@@ -214,21 +245,24 @@ async function amplify(url, steps, argv) {
           break;
 
         case 'removeUnusedStyles':
-          el = sourceDom.querySelector(action.selector);
-          if (!el) return `No matched regex: ${action.selector}`;
+          elements = sourceDom.querySelectorAll(action.selector);
+          if (!elements.length) return `No matched regex: ${action.selector}`;
 
           body = sourceDom.querySelector('body');
-          let oldSize = el.innerHTML.length;
-          newStyles = new CleanCSS({}).minify(el.innerHTML).styles;
-
-          newStyles = purify(body.innerHTML, newStyles, {
-            minify: action.minify || false,
+          let oldSize = 0, newSize = 0;
+          elements.forEach((el) => {
+            oldSize += el.innerHTML.length;
+            newStyles = new CleanCSS({}).minify(el.innerHTML).styles;
+            newStyles = purify(body.innerHTML, newStyles, {
+              minify: action.minify || false,
+            });
+            newSize += newStyles.length;
+            el.innerHTML = newStyles;
           });
-          let ratio = Math.round(
-              (oldSize - newStyles.length) / oldSize * 100);
-          el.innerHTML = newStyles;
 
-          message = `Removed ${ratio}% styles. (${oldSize} -> ${newStyles.length})`;
+          let ratio = Math.round(
+              (oldSize - newSize) / oldSize * 100);
+          message = `Removed ${ratio}% styles. (${oldSize} -> ${newSize})`;
           break;
 
         case 'customFunc':
