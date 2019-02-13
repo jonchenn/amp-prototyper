@@ -86,9 +86,9 @@ module.exports = [
     }],
   },
   {
-    name: 'Remove disallowed attributes',
+    name: 'Remove disallowed attributes based on AMP validation result.',
     actions: [{
-      log: 'Remove disallowed attributes based on AMP validation result.',
+      log: 'Remove disallowed attributes',
       actionType: 'removeDisallowedAttributes',
     }],
   },

@@ -50,7 +50,7 @@ async function validateAMP(html) {
   } else {
     result.errors.forEach((e) => {
       var msg = `line ${e.line}, col ${e.col}: ${e.message}`;
-      if (e.specUrl !== null) msg += ` (see ${e.specUrl})`;
+      if (e.specUrl) msg += ` (see ${e.specUrl})`;
       if (verbose) console.log('\t' + msg.dim);
       errors.push(msg);
     });
@@ -174,8 +174,10 @@ async function amplify(url, steps, argv) {
           let attibutes = getDisallowedAttributes(ampErrors);
           attibutes.forEach(attribute => {
             let re = new RegExp(` ${attribute}(=\"[^"]*\"|\s|>)`, 'g');
-            return sourceDom.documentElement.outerHTML.replace(re, ' ');
+            sourceDom.documentElement.innerHTML =
+                sourceDom.documentElement.innerHTML.replace(re, ' ');
           });
+          message = `Removed attributes: ${attibutes.join(', ')}`;
           break;
 
         case 'replace':
