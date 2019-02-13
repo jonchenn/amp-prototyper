@@ -16,12 +16,12 @@ module.exports = [
     }],
   },
   {
-    name: 'Clean up unsupported elements',
+    name: 'Remove disallowed tags',
     actions: [{
       log: 'Remove iframe',
       actionType: 'replace',
       selector: 'html',
-      regex: '<iframe.*<\/iframe>',
+      regex: '<iframe[^<]*(?:(?!<\/iframe>)<[^<]*)*<\/iframe>',
       replace: '',
     }, {
       log: 'Remove inline scripts',
@@ -55,7 +55,6 @@ module.exports = [
       log: 'Inline external CSS',
       actionType: 'inlineExternalStyles',
       selector: 'head',
-      excludeDomains: [],
       minify: true,
     }, {
       log: 'Merge all inline CSS to the head.',
@@ -89,17 +88,8 @@ module.exports = [
   {
     name: 'Remove disallowed attributes',
     actions: [{
-      log: 'Remove attributes: onclick|controlheight|controlwidth|aria-description|adhocenable|data',
-      actionType: 'replace',
-      selector: 'html',
-      regex: '(onclick|controlheight|controlwidth|aria-description|adhocenable|data-[^=]*)=\"[^"]*\"',
-      replace: '',
-    }, {
-      log: 'Remove to|expect|of|mind|promise|menu:click|onclick|privacy-policy|policy|sign-in|nav:clicked|my-account',
-      actionType: 'replace',
-      selector: 'html',
-      regex: '(to|expect|of|mind|promise|menu:click|onclick|privacy-policy|policy|sign-in|nav:clicked|my-account)=\"[^"]*\"',
-      replace: '',
+      log: 'Remove disallowed attributes based on AMP validation result.',
+      actionType: 'removeDisallowedAttributes',
     }],
   },
   {

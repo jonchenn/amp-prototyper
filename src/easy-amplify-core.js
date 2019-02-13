@@ -42,33 +42,45 @@ async function collectStyles(response) {
 
 async function validateAMP(html) {
   const ampValidator = await amphtmlValidator.getInstance();
-  let allMsgs = '';
+  let errors = [];
 
   let result = ampValidator.validateString(html);
   if (result.status === 'PASS') {
     console.log('\tAMP validation successful.'.green);
   } else {
-    if (verbose) {
-      result.errors.forEach((e) => {
-        var msg = `line ${e.line}, col ${e.col}: ${e.message}`;
-        if (e.specUrl !== null) {
-          msg += ` (see ${e.specUrl})`;
-        }
-        console.log('\t' + msg.dim);
-        allMsgs += msg + '\n';
-      });
-    }
-    console.log(`\t${result.errors.length} AMP validation errors.`.red);
+    result.errors.forEach((e) => {
+      var msg = `line ${e.line}, col ${e.col}: ${e.message}`;
+      if (e.specUrl !== null) msg += ` (see ${e.specUrl})`;
+      if (verbose) console.log('\t' + msg.dim);
+      errors.push(msg);
+    });
+    console.log(`\t${errors.length} AMP validation errors.`.red);
   }
-  return Promise.resolve(allMsgs);
+  return Promise.resolve(errors);
+}
+
+function getDisallowedAttributes(errors) {
+  let disallowedAttributes = new Set();
+
+  errors.forEach(error => {
+    let matches = error.match(/The attribute \'([^']*)\' may not appear/);
+    if (matches) {
+      disallowedAttributes.add(matches[1]);
+    }
+  });
+  disallowedAttributes = Array.from(disallowedAttributes).sort();
+  disallowedAttributes = disallowedAttributes.reverse();
+  return disallowedAttributes;
 }
 
 async function amplify(url, steps, argv) {
   argv = argv || {};
   outputPath = argv['output'] || '';
   verbose = argv.hasOwnProperty('verbose');
+
   let device = argv['device'] || 'Pixel 2'
   let isHeadless = argv['headless'] ? argv['headless'] === 'true' : true;
+  let consoleOutputs = [];
 
   // Print warnings when missing necessary arguments.
   if (!url || !steps) {
@@ -76,7 +88,6 @@ async function amplify(url, steps, argv) {
     return;
   }
 
-  let consoleOutputs = [];
   let domain = url.match(/(https|http)\:\/\/[\w.-]*(\:\d+)?/i)[0];
   if (!domain) {
     throw new Error('Unable to get domain from ' + url);
@@ -101,17 +112,21 @@ async function amplify(url, steps, argv) {
     consoleOutputs.push(consoleObj.text());
   });
 
+  console.log('Step 0: loading page.'.yellow);
+
   // Open URL and save source to sourceDom.
   const response = await page.goto(url);
   let pageSource = await response.text();
   let pageContent = await page.content();
   sourceDom = new JSDOM(pageContent).window.document;
+  let ampErrors = await validateAMP(pageContent);
 
-  console.log('Start.');
+  // Output initial HTML, screenshot and amp errors.
   await outputToFile(`output-step-0.html`, pageContent);
   await page.screenshot({
     path: `output/${outputPath}/output-step-0.png`
   });
+  await outputToFile(`output-step-0-log.txt`, ampErrors.join('\n'));
 
   // Clear page.on listener.
   page.removeListener('response', collectStyles);
@@ -132,7 +147,7 @@ async function amplify(url, steps, argv) {
       });
 
       let message = action.actionType;
-      let elements, el, html, regex, matches, newEl, body, newStyles;
+      let elements, el, elHtml, regex, matches, newEl, body, newStyles;
 
       if (action.waitAfterLoaded) {
         await page.waitFor(action.waitAfterLoaded);
@@ -155,18 +170,26 @@ async function amplify(url, steps, argv) {
           message = `remove ${action.attribute} from ${elements.length} elements`;
           break;
 
+        case 'removeDisallowedAttributes':
+          let attibutes = getDisallowedAttributes(ampErrors);
+          attibutes.forEach(attribute => {
+            let re = new RegExp(` ${attribute}(=\"[^"]*\"|\s|>)`, 'g');
+            return sourceDom.documentElement.outerHTML.replace(re, ' ');
+          });
+          break;
+
         case 'replace':
           var numReplaced = 0;
           elements = sourceDom.querySelectorAll(action.selector);
           if (!elements.length) return `No matched regex: ${action.selector}`;
 
           elements.forEach((el) => {
-            html = el.outerHTML;
+            elHtml = el.outerHTML;
             regex = new RegExp(action.regex, 'ig');
-            matches = html.match(regex, 'ig');
+            matches = elHtml.match(regex, 'ig');
             numReplaced += matches ? matches.length : 0;
-            html = html.replace(regex, action.replace);
-            el.innerHTML = html;
+            elHtml = elHtml.replace(regex, action.replace);
+            el.innerHTML = elHtml;
           });
           message = `${numReplaced} replaced`;
           break;
@@ -175,11 +198,11 @@ async function amplify(url, steps, argv) {
           el = sourceDom.querySelector(action.selector);
           if (!el) return `No matched regex: ${action.selector}`;
 
-          html = el.outerHTML;
+          elHtml = el.outerHTML;
           regex = new RegExp(action.regex, 'ig');
-          if (html.match(regex, 'ig')) {
-            html = html.replace(regex, action.replace);
-            el.innerHTML = html;
+          if (elHtml.match(regex, 'ig')) {
+            elHtml = elHtml.replace(regex, action.replace);
+            el.innerHTML = elHtml;
             message = 'Replaced';
           } else {
             newEl = sourceDom.createElement('template');
@@ -275,20 +298,23 @@ async function amplify(url, steps, argv) {
           break;
 
         default:
+          console.log(`${action.actionType} is not supported.`.red);
           break;
       }
       console.log(`\t${action.log || action.actionType}: ${message}`.reset);
     });
 
-    let html = '<!doctype html>\n' + sourceDom.documentElement.outerHTML;
-
-    html = beautify(html, {
+    // Beautify html.
+    let html = beautify(sourceDom.documentElement.outerHTML, {
       indent_size: 2,
       preserve_newlines: false,
       content_unformatted: ['script', 'style'],
     });
+    html = '<!DOCTYPE html>\n' + html;
+    // Update to source DOM.
     sourceDom.documentElement.innerHTML = html;
 
+    // Output HTML to file.
     await outputToFile(`output-step-${i+1}.html`, html);
     await page.setContent(html, {
       waitUntil: 'networkidle0',
@@ -299,9 +325,9 @@ async function amplify(url, steps, argv) {
     });
 
     // Validate AMP.
-    let allErrors = await validateAMP(html);
-    if (allErrors) {
-      await outputToFile(`output-step-${i+1}-log.txt`, allErrors);
+    ampErrors = await validateAMP(html);
+    if (ampErrors) {
+      await outputToFile(`output-step-${i+1}-log.txt`, ampErrors.join('\n'));
     }
   }
 
