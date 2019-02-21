@@ -37,13 +37,13 @@ async function collectStyles(response) {
   }
 }
 
-async function validateAMP(html) {
+async function validateAMP(html, printResult) {
   const ampValidator = await amphtmlValidator.getInstance();
   let errors = [];
 
   let result = ampValidator.validateString(html);
   if (result.status === 'PASS') {
-    console.log('\tAMP validation successful.'.green);
+    if (printResult) console.log('\tAMP validation successful.'.green);
   } else {
     result.errors.forEach((e) => {
       var msg = `line ${e.line}, col ${e.col}: ${e.message}`;
@@ -51,7 +51,8 @@ async function validateAMP(html) {
       if (verbose) console.log('\t' + msg.dim);
       errors.push(msg);
     });
-    console.log(`\t${errors.length} AMP validation errors.`.red);
+    if (printResult)
+        console.log(`\t${errors.length} AMP validation errors.`.red);
   }
   return Promise.resolve(errors);
 }
@@ -138,6 +139,7 @@ async function amplifyFunc(browser, url, steps, argv) {
 
   let i = 1;
   let stepOutput = '';
+  let html = beautifyHtml(sourceDom);
 
   for (let i = 0; i < steps.length; i++) {
     let step = steps[i];
@@ -325,11 +327,14 @@ async function amplifyFunc(browser, url, steps, argv) {
           break;
       }
       console.log(`\t${action.log || action.actionType}: ${message}`.reset);
-    });
 
-    // Beautify html and update to source DOM.
-    let html = beautifyHtml(sourceDom);
-    sourceDom.documentElement.innerHTML = html;
+      // Beautify html and update to source DOM.
+      html = beautifyHtml(sourceDom);
+      sourceDom.documentElement.innerHTML = html;
+
+      // Validate AMP.
+      ampErrors = await validateAMP(html);
+    });
 
     // Write HTML to file.
     await writeToFile(`output-step-${i+1}.html`, html);
@@ -345,9 +350,10 @@ async function amplifyFunc(browser, url, steps, argv) {
       path: `output/${outputPath}/output-step-${i+1}.png`
     });
 
-    // Validate AMP.
-    ampErrors = await validateAMP(html);
     await writeToFile(`output-step-${i+1}-log.txt`, (ampErrors || []).join('\n'));
+
+    // Print AMP validation result.
+    ampErrors = await validateAMP(html, true /* printResult */);
   }
 
   // Write final outcome to file.

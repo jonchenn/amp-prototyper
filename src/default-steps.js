@@ -44,29 +44,22 @@ module.exports = [
     }],
   },
   {
+    name: 'Convert disallowed tags to <div> based on AMP validation result.',
+    actions: [{
+      log: 'Change tags to <div>',
+      actionType: 'replaceBasedOnAmpErrors',
+      selector: 'body',
+      ampErrorRegex: 'The tag \'([^\']*)\' is disallowed',
+      regex: '<($1)((.|[\\r\\n])*)</$1>',
+      replace: '<div data-original-tag="$1" $2</div>',
+    }],
+  },
+  {
     name: 'Remove disallowed attributes and tags based on AMP validation result.',
     actions: [{
       log: 'Remove disallowed attributes',
       actionType: 'replaceBasedOnAmpErrors',
-      selector: 'html',
-      ampErrorRegex: 'The attribute \'([^\']*)\' may not appear in tag',
-      regex: ' $1(="[^"]*"|\\s|>)',
-      replace: '',
-    }, {
-      log: 'Change disallowed tags to <div>',
-      actionType: 'replaceBasedOnAmpErrors',
-      selector: 'html',
-      ampErrorRegex: 'The tag \'([^\']*)\' is disallowed',
-      regex: '<($1)((.|[\\r\\n])*)</$1>',
-      replace: '<div class="custom-tag-$1" $2</div>',
-    }],
-  },
-  {
-    name: 'Final clean up of disallowed attributes.',
-    actions: [{
-      log: 'Remove disallowed attributes',
-      actionType: 'replaceBasedOnAmpErrors',
-      selector: 'html',
+      selector: 'body',
       ampErrorRegex: 'The attribute \'([^\']*)\' may not appear in tag',
       regex: ' $1(="[^"]*"|\\s|>)',
       replace: '',
