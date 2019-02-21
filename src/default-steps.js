@@ -86,10 +86,21 @@ module.exports = [
     }],
   },
   {
-    name: 'Remove disallowed attributes based on AMP validation result.',
+    name: 'Remove disallowed attributes and tags based on AMP validation result.',
     actions: [{
       log: 'Remove disallowed attributes',
-      actionType: 'removeDisallowedAttributes',
+      actionType: 'replaceBasedOnAmpErrors',
+      selector: 'html',
+      ampErrorRegex: 'The attribute \'([^\']*)\' may not appear',
+      regex: ' $1(=\\"[^"]*\\"|\\s|>)',
+      replace: '',
+    }, {
+      log: 'Remove disallowed tags',
+      actionType: 'replaceBasedOnAmpErrors',
+      selector: 'html',
+      ampErrorRegex: 'The tag \'([^\']*)\' is disallowed',
+      regex: '(<!--)?.*<$1[^<]*(?:(?!<\/$1>)<[^<]*)*<\/$1>.*(?:-->)?',
+      replace: '',
     }],
   },
   {

@@ -1,6 +1,7 @@
 const puppeteer = require('puppeteer');
 const devices = require('puppeteer/DeviceDescriptors');
-const fse = require('fs-extra'); // v 5.0.0
+const fse = require('fs-extra');
+const mkdirp = require('mkdirp');
 const path = require('path');
 const beautify = require('js-beautify').html;
 const colors = require('colors');
@@ -8,6 +9,7 @@ const amphtmlValidator = require('amphtml-validator');
 const purify = require("purify-css")
 const argv = require('minimist')(process.argv.slice(2));
 const CleanCSS = require('clean-css');
+const assert = require('assert');
 const {
   JSDOM
 } = require("jsdom");
@@ -24,11 +26,6 @@ function replaceEnvVars(str) {
     }
   });
   return str;
-}
-
-async function outputToFile(filename, html, options) {
-  let filePath = path.resolve(`./output/${outputPath}/${filename}`);
-  await fse.outputFile(filePath, html);
 }
 
 async function collectStyles(response) {
@@ -59,39 +56,46 @@ async function validateAMP(html) {
   return Promise.resolve(errors);
 }
 
-function getDisallowedAttributes(errors) {
-  let disallowedAttributes = new Set();
-
+function matchAmpErrors(errors, ampErrorsRegex) {
+  let resultSet = new Set();
   errors.forEach(error => {
-    let matches = error.match(/The attribute \'([^']*)\' may not appear/);
+    let matches = error.match(new RegExp(ampErrorsRegex));
     if (matches) {
-      disallowedAttributes.add(matches[1]);
+      resultSet.add(matches);
     }
   });
-  disallowedAttributes = Array.from(disallowedAttributes).sort();
-  disallowedAttributes = disallowedAttributes.reverse();
-  return disallowedAttributes;
+  return resultSet;
 }
 
-async function amplify(url, steps, argv) {
+function beautifyHtml(sourceDom) {
+  // Beautify html.
+  let html = beautify(sourceDom.documentElement.outerHTML, {
+    indent_size: 2,
+    preserve_newlines: false,
+    content_unformatted: ['script', 'style'],
+  });
+  return '<!DOCTYPE html>\n' + html;
+}
+
+async function writeToFile(filename, html, options) {
+  let filePath = path.resolve(`./output/${outputPath}/${filename}`);
+  await fse.outputFile(filePath, html);
+}
+
+async function amplifyFunc(browser, url, steps, argv) {
   argv = argv || {};
   outputPath = argv['output'] || '';
   verbose = argv.hasOwnProperty('verbose');
 
   let device = argv['device'] || 'Pixel 2'
-  let isHeadless = argv['headless'] ? argv['headless'] === 'true' : true;
   let consoleOutputs = [];
 
   // Print warnings when missing necessary arguments.
-  if (!url || !steps) {
-    console.log('Missing url or steps.');
-    return;
-  }
+  assert(url, 'Missing url.');
+  assert(steps, 'Missing steps');
 
   let domain = url.match(/(https|http)\:\/\/[\w.-]*(\:\d+)?/i)[0];
-  if (!domain) {
-    throw new Error('Unable to get domain from ' + url);
-  }
+  assert(domain, 'Unable to get domain from ' + url);
 
   envVars = {
     '%%URL%%': encodeURI(url),
@@ -101,10 +105,6 @@ async function amplify(url, steps, argv) {
   console.log('Url: ' + url.green);
   console.log('Domain: ' + domain.green);
 
-  // Start puppeteer.
-  const browser = await puppeteer.launch({
-    headless: isHeadless,
-  });
   const page = await browser.newPage();
   await page.emulate(devices[device]);
   page.on('response', collectStyles);
@@ -121,12 +121,17 @@ async function amplify(url, steps, argv) {
   sourceDom = new JSDOM(pageContent).window.document;
   let ampErrors = await validateAMP(pageContent);
 
+  // Create directory if it doesn't exist.
+  mkdirp(`./output/${outputPath}/`, (err) => {
+    if (err) throw new Error(`Unable to create directory ${err}`);
+  });
+
   // Output initial HTML, screenshot and amp errors.
-  await outputToFile(`output-step-0.html`, pageContent);
+  await writeToFile(`output-step-0.html`, pageContent);
   await page.screenshot({
     path: `output/${outputPath}/output-step-0.png`
   });
-  await outputToFile(`output-step-0-log.txt`, ampErrors.join('\n'));
+  await writeToFile(`output-step-0-log.txt`, ampErrors.join('\n'));
 
   // Clear page.on listener.
   page.removeListener('response', collectStyles);
@@ -146,8 +151,9 @@ async function amplify(url, steps, argv) {
         action[prop] = replaceEnvVars(action[prop]);
       });
 
-      let message = action.actionType;
       let elements, el, elHtml, regex, matches, newEl, body, newStyles;
+      let numReplaced = 0;
+      let message = action.actionType;
 
       if (action.waitAfterLoaded) {
         await page.waitFor(action.waitAfterLoaded);
@@ -170,18 +176,32 @@ async function amplify(url, steps, argv) {
           message = `remove ${action.attribute} from ${elements.length} elements`;
           break;
 
-        case 'removeDisallowedAttributes':
-          let attibutes = getDisallowedAttributes(ampErrors);
-          attibutes.forEach(attribute => {
-            let re = new RegExp(` ${attribute}(=\"[^"]*\"|\s|>)`, 'g');
-            sourceDom.documentElement.innerHTML =
-                sourceDom.documentElement.innerHTML.replace(re, ' ');
+        case 'replaceBasedOnAmpErrors':
+          elements = sourceDom.querySelectorAll(action.selector);
+          if (!elements.length) return `No matched regex: ${action.selector}`;
+
+          let ampErrorMatches = matchAmpErrors(ampErrors, action.ampErrorRegex);
+          let regexStr;
+
+          elements.forEach((el) => {
+            ampErrorMatches.forEach(matches => {
+              regexStr = action.regex;
+              for (let i=1; i<=9; i++) {
+                if (matches[i]) {
+                  regexStr = regexStr.replace(new RegExp('\\$' + i, 'g'), matches[i]);
+                }
+              }
+              regex = new RegExp(regexStr, 'ig');
+              matches = sourceDom.documentElement.innerHTML.match(regex, 'ig');
+              numReplaced += matches ? matches.length : 0;
+              sourceDom.documentElement.innerHTML =
+                  sourceDom.documentElement.innerHTML.replace(regex, ' ');
+            });
           });
-          message = `Removed attributes: ${attibutes.join(', ')}`;
+          message = `${numReplaced} replaced based on AMP errors.`;
           break;
 
         case 'replace':
-          var numReplaced = 0;
           elements = sourceDom.querySelectorAll(action.selector);
           if (!elements.length) return `No matched regex: ${action.selector}`;
 
@@ -306,21 +326,19 @@ async function amplify(url, steps, argv) {
       console.log(`\t${action.log || action.actionType}: ${message}`.reset);
     });
 
-    // Beautify html.
-    let html = beautify(sourceDom.documentElement.outerHTML, {
-      indent_size: 2,
-      preserve_newlines: false,
-      content_unformatted: ['script', 'style'],
-    });
-    html = '<!DOCTYPE html>\n' + html;
-    // Update to source DOM.
+    // Beautify html and update to source DOM.
+    let html = beautifyHtml(sourceDom);
     sourceDom.documentElement.innerHTML = html;
 
-    // Output HTML to file.
-    await outputToFile(`output-step-${i+1}.html`, html);
+    // Write HTML to file.
+    await writeToFile(`output-step-${i+1}.html`, html);
+
+    // Update page content with updated HTML.
     await page.setContent(html, {
       waitUntil: 'networkidle0',
     });
+
+    // Take and save screenshot to file.
     await page.waitFor(200);
     await page.screenshot({
       path: `output/${outputPath}/output-step-${i+1}.png`
@@ -329,12 +347,36 @@ async function amplify(url, steps, argv) {
     // Validate AMP.
     ampErrors = await validateAMP(html);
     if (ampErrors) {
-      await outputToFile(`output-step-${i+1}-log.txt`, ampErrors.join('\n'));
+      await writeToFile(`output-step-${i+1}-log.txt`, ampErrors.join('\n'));
     }
   }
 
-  await browser.close();
-  console.log('Complete.'.green);
+  // Write final outcome to file.
+  await writeToFile(`output-final.html`, beautifyHtml(sourceDom));
+  await page.screenshot({
+    path: `output/${outputPath}/output-final.png`
+  });
+}
+
+async function amplify(url, steps, argv) {
+  let isHeadless = argv['headless'] ? argv['headless'] === 'true' : true;
+
+  // Start puppeteer.
+  const browser = await puppeteer.launch({
+    headless: isHeadless,
+  });
+
+  try {
+    await amplifyFunc(browser, url, steps, argv);
+    console.log('Complete.'.green);
+
+  } catch(e) {
+    console.error(e);
+    console.log('Complete with errors.'.yellow);
+
+  } finally {
+    if (browser) await browser.close();
+  }
 }
 
 module.exports = {

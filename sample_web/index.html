@@ -35,9 +35,17 @@
     </article>
     <img src="img/mountains.jpg">
 
+    <!-- All disallowed attributes should be removed. -->
     <button id="btn1" onclick="clickHandler()" data-test="test">Button!</button>
+    <div invalid-attribute="something"></div>
 
+    <!-- The following disallowed tags should be removed. -->
     <iframe src="/iframe-page.html" width="600" height="600"></iframe>
+    <some-nonexist-tag></some-nonexist-tag>
+    <custom-tag></custom-tag>
+    <unclosed-tag>
+    </orphan-tag>
+    <!-- <div>Tags in comment</div> -->
 
     <script>
       console.log('This should be removed after Amplified.');

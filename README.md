@@ -171,6 +171,15 @@ Use Regex to find and replace in the DOM.
 * `regex` <string> - Regex string to match.
 * `replace` <string> - Replace matches with this string.
 
+#### replaceBasedOnAmpErrors
+
+Use Regex to find and replace in the DOM based on AMP validation errors.
+
+* `selector` <string> - target element.
+* `ampErrorRegex` <string> - Regex string to match for AMP validation errors.
+* `regex` <string> - Regex string to match.
+* `replace` <string> - Replace matches with this string.
+
 #### replaceOrInsert
 
 Use Regex to find and replace in the DOM. If not found, insert to the destination element.
