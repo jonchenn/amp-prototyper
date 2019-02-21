@@ -182,6 +182,7 @@ async function amplifyFunc(browser, url, steps, argv) {
 
           let ampErrorMatches = matchAmpErrors(ampErrors, action.ampErrorRegex);
           let regexStr;
+          let matchSet = new Set();
 
           elements.forEach((el) => {
             ampErrorMatches.forEach(matches => {
@@ -189,16 +190,16 @@ async function amplifyFunc(browser, url, steps, argv) {
               for (let i=1; i<=9; i++) {
                 if (matches[i]) {
                   regexStr = regexStr.replace(new RegExp('\\$' + i, 'g'), matches[i]);
+                  matchSet.add(matches[i])
                 }
               }
-              regex = new RegExp(regexStr, 'ig');
-              matches = sourceDom.documentElement.innerHTML.match(regex, 'ig');
+              regex = new RegExp(regexStr);
+              matches = el.innerHTML.match(regex);
               numReplaced += matches ? matches.length : 0;
-              sourceDom.documentElement.innerHTML =
-                  sourceDom.documentElement.innerHTML.replace(regex, ' ');
+              el.innerHTML = el.innerHTML.replace(regex, action.replace);
             });
           });
-          message = `${numReplaced} replaced based on AMP errors.`;
+          message = `${numReplaced} replaced: ${Array.from(matchSet).join(', ')}`;
           break;
 
         case 'replace':
@@ -346,9 +347,7 @@ async function amplifyFunc(browser, url, steps, argv) {
 
     // Validate AMP.
     ampErrors = await validateAMP(html);
-    if (ampErrors) {
-      await writeToFile(`output-step-${i+1}-log.txt`, ampErrors.join('\n'));
-    }
+    await writeToFile(`output-step-${i+1}-log.txt`, (ampErrors || []).join('\n'));
   }
 
   // Write final outcome to file.
@@ -356,6 +355,7 @@ async function amplifyFunc(browser, url, steps, argv) {
   await page.screenshot({
     path: `output/${outputPath}/output-final.png`
   });
+  await writeToFile(`output-final-log.txt`, (ampErrors || []).join('\n'));
 }
 
 async function amplify(url, steps, argv) {

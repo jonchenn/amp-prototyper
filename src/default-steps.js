@@ -44,6 +44,35 @@ module.exports = [
     }],
   },
   {
+    name: 'Remove disallowed attributes and tags based on AMP validation result.',
+    actions: [{
+      log: 'Remove disallowed attributes',
+      actionType: 'replaceBasedOnAmpErrors',
+      selector: 'html',
+      ampErrorRegex: 'The attribute \'([^\']*)\' may not appear in tag',
+      regex: ' $1(="[^"]*"|\\s|>)',
+      replace: '',
+    }, {
+      log: 'Change disallowed tags to <div>',
+      actionType: 'replaceBasedOnAmpErrors',
+      selector: 'html',
+      ampErrorRegex: 'The tag \'([^\']*)\' is disallowed',
+      regex: '<($1)((.|[\\r\\n])*)</$1>',
+      replace: '<div class="custom-tag-$1" $2</div>',
+    }],
+  },
+  {
+    name: 'Final clean up of disallowed attributes.',
+    actions: [{
+      log: 'Remove disallowed attributes',
+      actionType: 'replaceBasedOnAmpErrors',
+      selector: 'html',
+      ampErrorRegex: 'The attribute \'([^\']*)\' may not appear in tag',
+      regex: ' $1(="[^"]*"|\\s|>)',
+      replace: '',
+    }],
+  },
+  {
     name: 'Inline all CSS styles in <head>',
     actions: [{
       log: 'Remove styles links',
@@ -82,24 +111,6 @@ module.exports = [
       actionType: 'replace',
       selector: 'style',
       regex: '\\!important',
-      replace: '',
-    }],
-  },
-  {
-    name: 'Remove disallowed attributes and tags based on AMP validation result.',
-    actions: [{
-      log: 'Remove disallowed attributes',
-      actionType: 'replaceBasedOnAmpErrors',
-      selector: 'html',
-      ampErrorRegex: 'The attribute \'([^\']*)\' may not appear',
-      regex: ' $1(=\\"[^"]*\\"|\\s|>)',
-      replace: '',
-    }, {
-      log: 'Remove disallowed tags',
-      actionType: 'replaceBasedOnAmpErrors',
-      selector: 'html',
-      ampErrorRegex: 'The tag \'([^\']*)\' is disallowed',
-      regex: '(<!--)?.*<$1[^<]*(?:(?!<\/$1>)<[^<]*)*<\/$1>.*(?:-->)?',
       replace: '',
     }],
   },
@@ -155,7 +166,7 @@ module.exports = [
       log: 'replace img to amp-img',
       actionType: 'replace',
       selector: 'html',
-      regex: '<img ((\\w*="[\\w\\d:\\/\\.\\s-\'’]*"\\s?)*)>',
+      regex: '<img ((\\w*="[^"]*"\\s?)*)>',
       replace: '<amp-img $1></amp-img>',
     }, {
       log: 'Set responsive layout',

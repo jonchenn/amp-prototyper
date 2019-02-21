@@ -3,7 +3,7 @@
   <head>
     <title>easy-amplify test page</title>
     <link href="base.css" rel="stylesheet" />
-
+    <meta name=viewport content="something-else">
     <script type="text/javascript" src="base.js"></script>
 
     <!-- Should remove the following -->
@@ -33,17 +33,24 @@
 
       <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Etiam egestas tortor sapien, non tristique ligula accumsan eu.</p>
     </article>
-    <img src="img/mountains.jpg">
 
     <!-- All disallowed attributes should be removed. -->
     <button id="btn1" onclick="clickHandler()" data-test="test">Button!</button>
-    <div invalid-attribute="something"></div>
+    <p invalid-attribute="something">Another paragraph</p>
+    <div name="some-name" app-url="http://example.com">Div with attribute name</div>
+    <div my-option="option1" my-option="option2" my-option="option3">Duplicate attibutes</div>
+    <div my-option="option1" my-option="option2" my-option="option3">Duplicate attibutes</div>
+    <div my-option="option1" my-option="option2" my-option="option3">Duplicate attibutes</div>
+
+    <!-- The following disallowed tags should be updated to <div>. -->
+    <custom-tag>
+      <span>This should remain intact.</span>
+      <img src="img/mountains.jpg">
+    </custom-tag>
+    <some-nonexist-tag></some-nonexist-tag>
 
     <!-- The following disallowed tags should be removed. -->
     <iframe src="/iframe-page.html" width="600" height="600"></iframe>
-    <some-nonexist-tag></some-nonexist-tag>
-    <custom-tag></custom-tag>
-    <unclosed-tag>
     </orphan-tag>
     <!-- <div>Tags in comment</div> -->
 
@@ -54,5 +61,9 @@
         console.log('click!');
       }
     </script>
+
+    <!-- Test zone below -->
+    <div class="custom-tag-update-meta" name="description" content="Build your business through fast and simple funding today with a business loan from LoanBuilder. Apply anywhere, anytime!"></div> <!-- uiView: -->
+
   </body>
 </html>
