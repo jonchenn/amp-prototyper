@@ -44,28 +44,6 @@ module.exports = [
     }],
   },
   {
-    name: 'Convert disallowed tags to <div> based on AMP validation result.',
-    actions: [{
-      log: 'Change tags to <div>',
-      actionType: 'replaceBasedOnAmpErrors',
-      selector: 'body',
-      ampErrorRegex: 'The tag \'([^\']*)\' is disallowed',
-      regex: '<($1)((.|[\\r\\n])*)</$1>',
-      replace: '<div data-original-tag="$1" $2</div>',
-    }],
-  },
-  {
-    name: 'Remove disallowed attributes and tags based on AMP validation result.',
-    actions: [{
-      log: 'Remove disallowed attributes',
-      actionType: 'replaceBasedOnAmpErrors',
-      selector: 'body',
-      ampErrorRegex: 'The attribute \'([^\']*)\' may not appear in tag',
-      regex: ' $1(="[^"]*"|\\s|>)',
-      replace: '',
-    }],
-  },
-  {
     name: 'Inline all CSS styles in <head>',
     actions: [{
       log: 'Remove styles links',
@@ -104,6 +82,28 @@ module.exports = [
       actionType: 'replace',
       selector: 'style',
       regex: '\\!important',
+      replace: '',
+    }],
+  },
+  {
+    name: 'Convert disallowed tags to <div> based on AMP validation result.',
+    actions: [{
+      log: 'Change tags to <div>',
+      actionType: 'replaceBasedOnAmpErrors',
+      selector: 'body',
+      ampErrorRegex: 'The tag \'([^\']*)\' is disallowed',
+      regex: '<($1)((.|[\\r\\n])*)</$1>',
+      replace: '<div data-original-tag="$1" $2</div>',
+    }],
+  },
+  {
+    name: 'Remove disallowed attributes and tags based on AMP validation result.',
+    actions: [{
+      log: 'Remove disallowed attributes',
+      actionType: 'replaceBasedOnAmpErrors',
+      selector: 'body',
+      ampErrorRegex: 'The attribute \'([^\']*)\' may not appear in tag',
+      regex: ' $1(="[^"]*"|\\s|>)',
       replace: '',
     }],
   },
