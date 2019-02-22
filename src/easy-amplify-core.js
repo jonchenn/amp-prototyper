@@ -287,11 +287,6 @@ async function amplifyFunc(browser, url, steps, argv) {
 
           newEl = sourceDom.createElement('style');
           newEl.appendChild(sourceDom.createTextNode(newStyles));
-          (action.attributes || []).forEach((attr) => {
-            let key, value;
-            [key, value] = attr.split('=');
-            newEl.setAttribute(key, value || '');
-          });
           el.appendChild(newEl);
           message = 'styles appended';
           break;
