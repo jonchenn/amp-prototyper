@@ -2,6 +2,7 @@ const puppeteer = require('puppeteer');
 const devices = require('puppeteer/DeviceDescriptors');
 const fse = require('fs-extra');
 const mkdirp = require('mkdirp');
+const rimraf = require('rimraf');
 const path = require('path');
 const beautify = require('js-beautify').html;
 const colors = require('colors');
@@ -306,6 +307,14 @@ async function amplifyFunc(browser, url, steps, argv) {
   console.log('Url: ' + url.green);
   console.log('Domain: ' + domain.green);
 
+  // Create directory if it doesn't exist.
+  mkdirp(`./output/${outputPath}/`, (err) => {
+    if (err) throw new Error(`Unable to create directory ${err}`);
+  });
+  rimraf(`./output/${outputPath}/*`, () => {
+    console.log(`Removed previous output in ./output/${outputPath}`.dim);
+  });
+
   const page = await browser.newPage();
   await page.emulate(devices[device]);
   page.on('response', collectStyles);
@@ -321,11 +330,6 @@ async function amplifyFunc(browser, url, steps, argv) {
   let pageContent = await page.content();
   sourceDom = new JSDOM(pageContent).window.document;
   let ampErrors = await validateAMP(pageContent);
-
-  // Create directory if it doesn't exist.
-  mkdirp(`./output/${outputPath}/`, (err) => {
-    if (err) throw new Error(`Unable to create directory ${err}`);
-  });
 
   // Output initial HTML, screenshot and amp errors.
   await writeToFile(`steps/output-step-0.html`, pageContent);
