@@ -4,15 +4,9 @@ module.exports = [
     actions: [{
       log: 'Update relative URLs',
       actionType: 'replace',
-      selector: 'html',
+      selector: 'head > :not(base), body',
       regex: '(href|src)=["\'](\\.*\\/[^\)^"^\']*)["\']',
       replace: '$1="%%DOMAIN%%/$2"',
-    }, {
-      log: 'Update relative URLs in CSS.',
-      actionType: 'replace',
-      selector: 'style',
-      regex: 'url\\(["\']?(\\.*\\/[^\)^"^\']*)["\']?\\)',
-      replace: 'url("%%DOMAIN%%/$1")',
     }],
   },
   {
@@ -83,6 +77,12 @@ module.exports = [
       selector: 'style',
       regex: '\\!important',
       replace: '',
+    }, {
+      log: 'Update relative URLs in CSS.',
+      actionType: 'replace',
+      selector: 'style',
+      regex: 'url\\(["\']?((?!http(s?))[^\)^"^\']*)["\']?\\)',
+      replace: 'url("%%DOMAIN%%/$1")',
     }],
   },
   {

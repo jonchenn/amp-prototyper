@@ -209,7 +209,7 @@ async function amplifyFunc(browser, url, steps, argv) {
           if (!elements.length) return `No matched regex: ${action.selector}`;
 
           elements.forEach((el) => {
-            elHtml = el.outerHTML;
+            elHtml = el.innerHTML;
             regex = new RegExp(action.regex, 'ig');
             matches = elHtml.match(regex, 'ig');
             numReplaced += matches ? matches.length : 0;
@@ -223,7 +223,7 @@ async function amplifyFunc(browser, url, steps, argv) {
           el = sourceDom.querySelector(action.selector);
           if (!el) return `No matched regex: ${action.selector}`;
 
-          elHtml = el.outerHTML;
+          elHtml = el.innerHTML;
           regex = new RegExp(action.regex, 'ig');
           if (elHtml.match(regex, 'ig')) {
             elHtml = elHtml.replace(regex, action.replace);

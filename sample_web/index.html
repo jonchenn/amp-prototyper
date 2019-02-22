@@ -1,6 +1,7 @@
 <!doctype html>
 <html lang="en">
   <head>
+    <base href="/">
     <title>easy-amplify test page</title>
     <link href="base.css" rel="stylesheet" />
     <meta name=viewport content="something-else">
@@ -23,14 +24,31 @@
       .style-in-body {
         font-size: 12px;
       }
-
       .style-in-body:hover {
         font-size: 16px;
       }
-
+    </style>
+    <style>
       #main {
         background-image:url(/img/mountains.jpg);
         padding: 20px;
+      }
+      .bg-1 {
+        background-image:url(./img/mountains.jpg);
+      }
+      .bg-2 {
+        background-image:url(img/mountains.jpg);
+      }
+      .bg-3 {
+        background-image:url(http://example.com/img/mountains.jpg);
+      }
+    </style>
+    <style>
+      .bg-4 {
+        background-image:url(https://example.com/img/mountains.jpg);
+      }
+      .bg-5 {
+        background-image:url(//example.com/img/mountains.jpg);
       }
     </style>
     <article id="main">
