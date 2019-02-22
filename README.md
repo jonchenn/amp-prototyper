@@ -118,6 +118,9 @@ output/ folder:
 * `output-step-[STEP_ID].png` - the screenshot after this step.
 * `output-step-[STEP_ID]-log.txt` (only with --verbose) - AMP validation errors from console output.
 
+If you don't specify --output, it uses the domain from the given URL as the
+name of the output folder.
+
 ## Customize steps
 
 ### Structure of steps
@@ -130,6 +133,7 @@ Each step follows the structure below.
 {
   name: 'Name of the step',
   actions: [{
+    skip: false,
     log: 'Log output for this action',
     actionType: 'replace',
     selector: 'html',
@@ -153,6 +157,33 @@ Common properties of an action:
 * `actionType` <string> - Action type.
 * `log` <string> - Message output of this action.
 * `waitAfterLoaded` <int> - Wait for a specific milliseconds after the page loaded.
+
+### Environment Variables
+
+You can also use the following EnvVars in the steps configuration.
+
+* `$URL` <string> - The URL from the --url parameter.
+* `$HOST` <string> - The host derived from the URL.
+* `$DOMAIN` <string> - The domain derived from the URL.
+
+For example, you have a step like below:
+
+```
+{
+  name: 'Name of the step',
+  actions: [{
+    log: 'Log output for this action',
+    actionType: 'replace',
+    selector: 'html',
+    regex: '<div(.*)>(.*)</div>',
+    replace: '<span$1>$HOST</span>',
+  }],
+},
+
+```
+
+While running the script with `https://example.com`, it replaces """$HOST"""
+with "https://example.com".
 
 ### Supported actions:
 
@@ -179,6 +210,40 @@ Use Regex to find and replace in the DOM based on AMP validation errors.
 * `ampErrorRegex` <string> - Regex string to match for AMP validation errors.
 * `regex` <string> - Regex string to match.
 * `replace` <string> - Replace matches with this string.
+
+For example, in a specific step it has the following AMP validation errors.
+
+```
+line 61, col 4: The attribute 'onclick' may not appear in tag 'button'.
+line 70, col 4: The tag 'custom-tag' is disallowed.
+```
+
+To replace the <custom-tag> in the body based on the AMP validation result, you
+can have the following step:
+
+```
+{
+  name: 'Convert disallowed tags to <div> based on AMP validation result.',
+  actions: [{
+    log: 'Change tags to <div>',
+    actionType: 'replaceBasedOnAmpErrors',
+    selector: 'body',
+    ampErrorRegex: 'The tag \'([^\']*)\' is disallowed',
+    regex: '<($1)((.|[\\r\\n])*)</$1>',
+    replace: '<div data-original-tag="$1" $2</div>',
+  }],
+}
+```
+
+This step matches the AMP validation result with `ampErrorRegex`. Then it
+replace the `regex` with the capturing group #1 from `ampErrorRegex`. In this
+case, the `regex` becomes:
+
+```
+<(custom-tag)((.|[\\r\\n])*)</custom-tag>
+```
+
+Finally, it uses the revised `regex` to replace the content with `replace` value.
 
 #### replaceOrInsert
 
