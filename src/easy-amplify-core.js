@@ -85,7 +85,7 @@ async function writeToFile(filename, html, options) {
 }
 
 async function runAction(action, sourceDom, page) {
-  let elements, el, elHtml, regex, matches, newEl, body, newStyles;
+  let elements, el, destEl, elHtml, regex, matches, newEl, body, newStyles;
   let numReplaced = 0;
   let message = action.actionType;
 
@@ -176,7 +176,7 @@ async function runAction(action, sourceDom, page) {
       }
       break;
 
-    case 'insertBottom':
+    case 'insert':
       el = sourceDom.querySelector(action.selector);
       if (!el) throw new Error(`No matched element(s): ${action.selector}`);
 
@@ -196,10 +196,30 @@ async function runAction(action, sourceDom, page) {
       message = 'Dom appended';
       break;
 
+    case 'move':
+      elements = sourceDom.querySelectorAll(action.selector);
+      if (!elements.length) throw new Error(`No matched element(s): ${action.selector}`);
+
+      destEl = sourceDom.querySelector(action.destSelector);
+      if (!destEl) throw new Error(`No matched element: ${action.destSelector}`);
+
+      var movedContent = '';
+      elements.forEach((el) => {
+        movedContent += el.outerHTML + '\n';
+        el.parentNode.removeChild(el);
+      });
+
+      destEl.innerHTML += movedContent;
+      message = `Moved ${elements.length} elements`;
+      break;
+
     // Merge multiple DOMs into one.
     case 'mergeContent':
       elements = sourceDom.querySelectorAll(action.selector);
       if (!elements.length) throw new Error(`No matched element(s): ${action.selector}`);
+
+      destEl = sourceDom.querySelector(action.destSelector);
+      if (!destEl) throw new Error(`No matched element: ${action.destSelector}`);
 
       var mergedContent = '';
       var firstEl = elements[0];
@@ -208,10 +228,9 @@ async function runAction(action, sourceDom, page) {
         el.parentNode.removeChild(el);
       });
 
-      el = sourceDom.querySelector(action.targetSelector);
       firstEl.innerHTML = mergedContent;
-      el.innerHTML += firstEl.outerHTML;
-      message = `Merged ${elements.length} doms`;
+      destEl.innerHTML += firstEl.outerHTML;
+      message = `Merged ${elements.length} elements`;
       break;
 
     case 'inlineExternalStyles':
@@ -389,7 +408,7 @@ async function amplifyFunc(browser, url, steps, argv) {
   }
 
   // Write final outcome to file.
-  await writeToFile(`output-final.html`, beautifyHtml(sourceDom));
+  await writeToFile(`output-final.html`, html);
   await page.screenshot({
     path: `output/${outputPath}/output-final.png`
   });

@@ -253,13 +253,22 @@ Use Regex to find and replace in the DOM. If not found, insert to the destinatio
 * `regex` <string> - Regex string to match.
 * `replace` <string> - Replace matches with this string.
 
-#### insertBottom
+#### insert
 
-Insert a string to the bottom of a specific element. E.g. adding a string
-to the bottom of the <head> DOM.
+Insert a string to the bottom of the destination element. E.g. adding a string
+to the bottom of the <head>.
 
 * `selector` <string> - target element.
 * `value` <string> - the string to insert.
+* `destSelector` <string> - destination element.
+
+#### move
+
+Move elements to the bottom of the destination element. E.g. moving all <link>
+to the bottom of the <head>.
+
+* `selector` <string> - target element.
+* `destSelector` <string> - destination element.
 
 #### appendAfter
 

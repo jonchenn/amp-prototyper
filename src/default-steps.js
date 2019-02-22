@@ -35,6 +35,12 @@ module.exports = [
       selector: 'html',
       regex: 'javascript:.*void(0)',
       replace: '',
+    }, {
+      log: 'Remove nonscript',
+      actionType: 'replace',
+      selector: 'html',
+      regex: '<nonscript[^<]*(?:(?!<\/nonscript>)<[^<]*)*<\/nonscript>',
+      replace: '',
     }],
   },
   {
@@ -54,7 +60,7 @@ module.exports = [
       log: 'Merge all inline CSS to the head.',
       actionType: 'mergeContent',
       selector: 'style:not([amp-boilerplate])',
-      targetSelector: 'head',
+      destSelector: 'head',
     }, {
       log: 'Change inline CSS to <style amp-custom>',
       actionType: 'replace',
@@ -86,11 +92,20 @@ module.exports = [
     }],
   },
   {
+    name: 'Additional page clean up',
+    actions: [{
+      log: 'Move font links to <head>',
+      actionType: 'move',
+      selector: 'link',
+      destSelector: 'head',
+    }],
+  },
+  {
     name: 'Convert disallowed tags to <div> based on AMP validation result.',
     actions: [{
       log: 'Change tags to <div>',
       actionType: 'replaceBasedOnAmpErrors',
-      selector: 'body',
+      selector: 'html',
       ampErrorRegex: 'The tag \'([^\']*)\' is disallowed',
       regex: '<($1)((.|[\\r\\n])*)</$1>',
       replace: '<div data-original-tag="$1" $2</div>',
@@ -101,7 +116,7 @@ module.exports = [
     actions: [{
       log: 'Remove disallowed attributes',
       actionType: 'replaceBasedOnAmpErrors',
-      selector: 'body',
+      selector: 'html',
       ampErrorRegex: 'The attribute \'([^\']*)\' may not appear in tag',
       regex: ' $1(="[^"]*"|\\s|>)',
       replace: '',
@@ -145,7 +160,7 @@ module.exports = [
       replace: '<link rel=canonical href="%%URL%%">',
     }, {
       log: 'Add AMP boilerplate.',
-      actionType: 'insertBottom',
+      actionType: 'insert',
       selector: 'head',
       value: `
 <style amp-boilerplate>body{-webkit-animation:-amp-start 8s steps(1,end) 0s 1 normal both;-moz-animation:-amp-start 8s steps(1,end) 0s 1 normal both;-ms-animation:-amp-start 8s steps(1,end) 0s 1 normal both;animation:-amp-start 8s steps(1,end) 0s 1 normal both}@-webkit-keyframes -amp-start{from{visibility:hidden}to{visibility:visible}}@-moz-keyframes -amp-start{from{visibility:hidden}to{visibility:visible}}@-ms-keyframes -amp-start{from{visibility:hidden}to{visibility:visible}}@-o-keyframes -amp-start{from{visibility:hidden}to{visibility:visible}}@keyframes -amp-start{from{visibility:hidden}to{visibility:visible}}</style>
