@@ -180,11 +180,11 @@ module.exports = [
       regex: '<img ((\\w*="[^"]*"\\s?)*)>',
       replace: '<amp-img $1></amp-img>',
     }, {
-      log: 'Set responsive layout',
+      log: 'Set intrinsic layout',
       actionType: 'setAttribute',
       selector: 'amp-img',
       attribute: 'layout',
-      value: 'responsive',
+      value: 'intrinsic',
     }],
   }
 ];
