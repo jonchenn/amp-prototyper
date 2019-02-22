@@ -83,9 +83,202 @@ async function writeToFile(filename, html, options) {
   await fse.outputFile(filePath, html);
 }
 
+async function runAction(action, sourceDom, page) {
+  let elements, el, elHtml, regex, matches, newEl, body, newStyles;
+  let numReplaced = 0;
+  let message = action.actionType;
+
+  // Replace the action's all properties with envVars values.
+  Object.keys(action).forEach((prop) => {
+    action[prop] = replaceEnvVars(action[prop]);
+  });
+
+  if (action.waitAfterLoaded) {
+    await page.waitFor(action.waitAfterLoaded);
+  }
+
+  switch (action.actionType) {
+    case 'setAttribute':
+      elements = sourceDom.querySelectorAll(action.selector);
+      elements.forEach((el) => {
+        el.setAttribute(action.attribute, action.value);
+      });
+      message = `set ${action.attribute} as ${action.value}`;
+      break;
+
+    case 'removeAttribute':
+      elements = sourceDom.querySelectorAll(action.selector);
+      elements.forEach((el) => {
+        el.removeAttribute(action.attribute);
+      });
+      message = `remove ${action.attribute} from ${elements.length} elements`;
+      break;
+
+    case 'replaceBasedOnAmpErrors':
+      elements = sourceDom.querySelectorAll(action.selector);
+      if (!elements.length) return `No matched regex: ${action.selector}`;
+
+      let ampErrorMatches = matchAmpErrors(ampErrors, action.ampErrorRegex);
+      let regexStr;
+      let matchSet = new Set();
+
+      elements.forEach((el) => {
+        ampErrorMatches.forEach(matches => {
+          regexStr = action.regex;
+          for (let i=1; i<=9; i++) {
+            if (matches[i]) {
+              regexStr = regexStr.replace(new RegExp('\\$' + i, 'g'), matches[i]);
+              matchSet.add(matches[i])
+            }
+          }
+          regex = new RegExp(regexStr);
+          matches = el.innerHTML.match(regex);
+          numReplaced += matches ? matches.length : 0;
+          el.innerHTML = el.innerHTML.replace(regex, action.replace);
+        });
+      });
+      message = `${numReplaced} replaced: ${Array.from(matchSet).join(', ')}`;
+      break;
+
+    case 'replace':
+      elements = sourceDom.querySelectorAll(action.selector);
+      if (!elements.length) return `No matched regex: ${action.selector}`;
+
+      elements.forEach((el) => {
+        elHtml = el.innerHTML;
+        regex = new RegExp(action.regex, 'ig');
+        matches = elHtml.match(regex, 'ig');
+        numReplaced += matches ? matches.length : 0;
+        elHtml = elHtml.replace(regex, action.replace);
+        el.innerHTML = elHtml;
+      });
+      message = `${numReplaced} replaced`;
+      break;
+
+    case 'replaceOrInsert':
+      el = sourceDom.querySelector(action.selector);
+      if (!el) return `No matched regex: ${action.selector}`;
+
+      elHtml = el.innerHTML;
+      regex = new RegExp(action.regex, 'ig');
+      if (elHtml.match(regex, 'ig')) {
+        elHtml = elHtml.replace(regex, action.replace);
+        el.innerHTML = elHtml;
+        message = 'Replaced';
+      } else {
+        newEl = sourceDom.createElement('template');
+        newEl.innerHTML = action.replace;
+        newEl.content.childNodes.forEach((node) => {
+          el.appendChild(node);
+        });
+        message = `Inserted in ${action.selector}`;
+      }
+      break;
+
+    case 'insertBottom':
+      el = sourceDom.querySelector(action.selector);
+      if (!el) return `No matched regex: ${action.selector}`;
+
+      el.innerHTML += (action.value || '');
+      message = `Inserted in ${action.selector}`;
+      break;
+
+    case 'appendAfter':
+      el = sourceDom.querySelector(action.selector);
+      if (!el) return `No matched regex: ${action.selector}`;
+
+      newEl = sourceDom.createElement('template');
+      newEl.innerHTML = action.value;
+      Array.from(newEl.content.childNodes).forEach((node) => {
+        el.parentNode.insertBefore(node, el.nextSibling);
+      });
+      message = 'Dom appended';
+      break;
+
+    // Merge multiple DOMs into one.
+    case 'mergeContent':
+      elements = sourceDom.querySelectorAll(action.selector);
+      if (!elements.length) return `No matched regex: ${action.selector}`;
+
+      var mergedContent = '';
+      var firstEl = elements[0];
+      elements.forEach((el) => {
+        mergedContent += el.innerHTML + '\n';
+        el.parentNode.removeChild(el);
+      });
+
+      el = sourceDom.querySelector(action.targetSelector);
+      firstEl.innerHTML = mergedContent;
+      el.innerHTML += firstEl.outerHTML;
+      message = `Merged ${elements.length} doms`;
+      break;
+
+    case 'inlineExternalStyles':
+      el = sourceDom.querySelector(action.selector);
+      if (!el) return `No matched regex: ${action.selector}`;
+
+      newStyles = action.minify ?
+        new CleanCSS({}).minify(allStyles).styles : allStyles;
+
+      newEl = sourceDom.createElement('style');
+      newEl.appendChild(sourceDom.createTextNode(newStyles));
+      el.appendChild(newEl);
+      message = 'styles appended';
+      break;
+
+    case 'removeUnusedStyles':
+      elements = sourceDom.querySelectorAll(action.selector);
+      if (!elements.length) return `No matched regex: ${action.selector}`;
+
+      body = sourceDom.querySelector('body');
+      let oldSize = 0, newSize = 0;
+      elements.forEach((el) => {
+        oldSize += el.innerHTML.length;
+        newStyles = new CleanCSS({}).minify(el.innerHTML).styles;
+        newStyles = purify(body.innerHTML, newStyles, {
+          minify: action.minify || false,
+        });
+        newSize += newStyles.length;
+        el.innerHTML = newStyles;
+      });
+
+      let ratio = Math.round(
+          (oldSize - newSize) / oldSize * 100);
+      message = `Removed ${ratio}% styles. (${oldSize} -> ${newSize})`;
+      break;
+
+    case 'customFunc':
+      elements = sourceDom.querySelectorAll(action.selector);
+      if (!elements.length) return `No matched regex: ${action.selector}`;
+
+      if (action.customFunc) {
+        await action.customFunc(action, elements, page);
+      }
+      break;
+
+    default:
+      console.log(`${action.actionType} is not supported.`.red);
+      break;
+  }
+  console.log(`\t${action.log || action.actionType}: ${message}`.reset);
+
+  // Beautify html and update to source DOM.
+  html = beautifyHtml(sourceDom);
+  sourceDom.documentElement.innerHTML = html;
+
+  // Validate AMP.
+  ampErrors = await validateAMP(html);
+
+  // Update page content with updated HTML.
+  await page.setContent(html, {
+    waitUntil: 'networkidle0',
+  });
+
+  return html;
+}
+
 async function amplifyFunc(browser, url, steps, argv) {
   argv = argv || {};
-  outputPath = argv['output'] || '';
   verbose = argv.hasOwnProperty('verbose');
 
   let device = argv['device'] || 'Pixel 2'
@@ -95,12 +288,19 @@ async function amplifyFunc(browser, url, steps, argv) {
   assert(url, 'Missing url.');
   assert(steps, 'Missing steps');
 
-  let domain = url.match(/(https|http)\:\/\/[\w.-]*(\:\d+)?/i)[0];
+  let host = url.match(/(https|http)\:\/\/[\w.-]*(\:\d+)?/i)[0];
+  let domain = host.replace(/http(s)?:\/\//ig, '');
+  let urlWithoutProtocol = url.replace(/http(s)?:\/\//ig, '');
+  assert(host, 'Unable to get host from ' + url);
   assert(domain, 'Unable to get domain from ' + url);
 
+  // Set output subfolder using domain if undefined.
+  outputPath = argv['output'] || urlWithoutProtocol.replace(/\//ig, '_');
+
   envVars = {
-    '%%URL%%': encodeURI(url),
-    '%%DOMAIN%%': domain,
+    '$URL': encodeURI(url),
+    '$HOST': host,
+    '$DOMAIN': domain,
   };
 
   console.log('Url: ' + url.green);
@@ -128,11 +328,11 @@ async function amplifyFunc(browser, url, steps, argv) {
   });
 
   // Output initial HTML, screenshot and amp errors.
-  await writeToFile(`output-step-0.html`, pageContent);
+  await writeToFile(`steps/output-step-0.html`, pageContent);
   await page.screenshot({
-    path: `output/${outputPath}/output-step-0.png`
+    path: `output/${outputPath}/steps/output-step-0.png`
   });
-  await writeToFile(`output-step-0-log.txt`, ampErrors.join('\n'));
+  await writeToFile(`steps/output-step-0-log.txt`, ampErrors.join('\n'));
 
   // Clear page.on listener.
   page.removeListener('response', collectStyles);
@@ -142,206 +342,29 @@ async function amplifyFunc(browser, url, steps, argv) {
   let html = beautifyHtml(sourceDom);
 
   for (let i = 0; i < steps.length; i++) {
-    let step = steps[i];
     consoleOutputs = [];
+    let step = steps[i];
 
     if (!step.actions || step.skip) continue;
     console.log(`Step ${i+1}: ${step.name}`.yellow);
 
     for (let j = 0; j < step.actions.length; j++) {
       let action = step.actions[j];
-      Object.keys(action).forEach((prop) => {
-        action[prop] = replaceEnvVars(action[prop]);
-      });
 
-      let elements, el, elHtml, regex, matches, newEl, body, newStyles;
-      let numReplaced = 0;
-      let message = action.actionType;
-
-      if (action.waitAfterLoaded) {
-        await page.waitFor(action.waitAfterLoaded);
+      try {
+        // The sourceDom will be updated after each action.
+        html = await runAction(action, sourceDom, page);
+      } catch (e) {
+        if (verbose) {
+          console.log(e);
+        } else {
+          console.log(`Error: ${e.message}`.red);
+        }
       }
-
-      switch (action.actionType) {
-        case 'setAttribute':
-          elements = sourceDom.querySelectorAll(action.selector);
-          elements.forEach((el) => {
-            el.setAttribute(action.attribute, action.value);
-          });
-          message = `set ${action.attribute} as ${action.value}`;
-          break;
-
-        case 'removeAttribute':
-          elements = sourceDom.querySelectorAll(action.selector);
-          elements.forEach((el) => {
-            el.removeAttribute(action.attribute);
-          });
-          message = `remove ${action.attribute} from ${elements.length} elements`;
-          break;
-
-        case 'replaceBasedOnAmpErrors':
-          elements = sourceDom.querySelectorAll(action.selector);
-          if (!elements.length) return `No matched regex: ${action.selector}`;
-
-          let ampErrorMatches = matchAmpErrors(ampErrors, action.ampErrorRegex);
-          let regexStr;
-          let matchSet = new Set();
-
-          elements.forEach((el) => {
-            ampErrorMatches.forEach(matches => {
-              regexStr = action.regex;
-              for (let i=1; i<=9; i++) {
-                if (matches[i]) {
-                  regexStr = regexStr.replace(new RegExp('\\$' + i, 'g'), matches[i]);
-                  matchSet.add(matches[i])
-                }
-              }
-              regex = new RegExp(regexStr);
-              matches = el.innerHTML.match(regex);
-              numReplaced += matches ? matches.length : 0;
-              el.innerHTML = el.innerHTML.replace(regex, action.replace);
-            });
-          });
-          message = `${numReplaced} replaced: ${Array.from(matchSet).join(', ')}`;
-          break;
-
-        case 'replace':
-          elements = sourceDom.querySelectorAll(action.selector);
-          if (!elements.length) return `No matched regex: ${action.selector}`;
-
-          elements.forEach((el) => {
-            elHtml = el.innerHTML;
-            regex = new RegExp(action.regex, 'ig');
-            matches = elHtml.match(regex, 'ig');
-            numReplaced += matches ? matches.length : 0;
-            elHtml = elHtml.replace(regex, action.replace);
-            el.innerHTML = elHtml;
-          });
-          message = `${numReplaced} replaced`;
-          break;
-
-        case 'replaceOrInsert':
-          el = sourceDom.querySelector(action.selector);
-          if (!el) return `No matched regex: ${action.selector}`;
-
-          elHtml = el.innerHTML;
-          regex = new RegExp(action.regex, 'ig');
-          if (elHtml.match(regex, 'ig')) {
-            elHtml = elHtml.replace(regex, action.replace);
-            el.innerHTML = elHtml;
-            message = 'Replaced';
-          } else {
-            newEl = sourceDom.createElement('template');
-            newEl.innerHTML = action.replace;
-            newEl.content.childNodes.forEach((node) => {
-              el.appendChild(node);
-            });
-            message = `Inserted in ${action.selector}`;
-          }
-          break;
-
-        case 'insertBottom':
-          el = sourceDom.querySelector(action.selector);
-          if (!el) return `No matched regex: ${action.selector}`;
-
-          el.innerHTML += (action.value || '');
-          message = `Inserted in ${action.selector}`;
-          break;
-
-        case 'appendAfter':
-          el = sourceDom.querySelector(action.selector);
-          if (!el) return `No matched regex: ${action.selector}`;
-
-          newEl = sourceDom.createElement('template');
-          newEl.innerHTML = action.value;
-          Array.from(newEl.content.childNodes).forEach((node) => {
-            el.parentNode.insertBefore(node, el.nextSibling);
-          });
-          message = 'Dom appended';
-          break;
-
-        // Merge multiple DOMs into one.
-        case 'mergeContent':
-          elements = sourceDom.querySelectorAll(action.selector);
-          if (!elements.length) return `No matched regex: ${action.selector}`;
-
-          var mergedContent = '';
-          var firstEl = elements[0];
-          elements.forEach((el) => {
-            mergedContent += el.innerHTML + '\n';
-            el.parentNode.removeChild(el);
-          });
-
-          el = sourceDom.querySelector(action.targetSelector);
-          firstEl.innerHTML = mergedContent;
-          el.innerHTML += firstEl.outerHTML;
-          message = `Merged ${elements.length} doms`;
-          break;
-
-        case 'inlineExternalStyles':
-          el = sourceDom.querySelector(action.selector);
-          if (!el) return `No matched regex: ${action.selector}`;
-
-          newStyles = action.minify ?
-            new CleanCSS({}).minify(allStyles).styles : allStyles;
-
-          newEl = sourceDom.createElement('style');
-          newEl.appendChild(sourceDom.createTextNode(newStyles));
-          el.appendChild(newEl);
-          message = 'styles appended';
-          break;
-
-        case 'removeUnusedStyles':
-          elements = sourceDom.querySelectorAll(action.selector);
-          if (!elements.length) return `No matched regex: ${action.selector}`;
-
-          body = sourceDom.querySelector('body');
-          let oldSize = 0, newSize = 0;
-          elements.forEach((el) => {
-            oldSize += el.innerHTML.length;
-            newStyles = new CleanCSS({}).minify(el.innerHTML).styles;
-            newStyles = purify(body.innerHTML, newStyles, {
-              minify: action.minify || false,
-            });
-            newSize += newStyles.length;
-            el.innerHTML = newStyles;
-          });
-
-          let ratio = Math.round(
-              (oldSize - newSize) / oldSize * 100);
-          message = `Removed ${ratio}% styles. (${oldSize} -> ${newSize})`;
-          break;
-
-        case 'customFunc':
-          elements = sourceDom.querySelectorAll(action.selector);
-          if (!elements.length) return `No matched regex: ${action.selector}`;
-
-          if (action.customFunc) {
-            await action.customFunc(action, elements, page);
-          }
-          break;
-
-        default:
-          console.log(`${action.actionType} is not supported.`.red);
-          break;
-      }
-      console.log(`\t${action.log || action.actionType}: ${message}`.reset);
-
-      // Beautify html and update to source DOM.
-      html = beautifyHtml(sourceDom);
-      sourceDom.documentElement.innerHTML = html;
-
-      // Validate AMP.
-      ampErrors = await validateAMP(html);
-
-      // Update page content with updated HTML.
-      await page.setContent(html, {
-        waitUntil: 'networkidle0',
-      });
     }
 
     // Write HTML to file.
-    await writeToFile(`output-step-${i+1}.html`, html);
+    await writeToFile(`steps/output-step-${i+1}.html`, html);
 
     // Update page content with updated HTML.
     await page.setContent(html, {
@@ -351,10 +374,10 @@ async function amplifyFunc(browser, url, steps, argv) {
     // Take and save screenshot to file.
     await page.waitFor(500);
     await page.screenshot({
-      path: `output/${outputPath}/output-step-${i+1}.png`
+      path: `output/${outputPath}/steps/output-step-${i+1}.png`
     });
 
-    await writeToFile(`output-step-${i+1}-log.txt`, (ampErrors || []).join('\n'));
+    await writeToFile(`steps/output-step-${i+1}-log.txt`, (ampErrors || []).join('\n'));
 
     // Print AMP validation result.
     ampErrors = await validateAMP(html, true /* printResult */);

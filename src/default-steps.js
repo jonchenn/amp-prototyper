@@ -6,7 +6,7 @@ module.exports = [
       actionType: 'replace',
       selector: 'head > :not(base), body',
       regex: '(href|src)=["\'](\\.*\\/[^\)^"^\']*)["\']',
-      replace: '$1="%%DOMAIN%%/$2"',
+      replace: '$1="$HOST/$2"',
     }],
   },
   {
@@ -27,7 +27,7 @@ module.exports = [
       log: 'Remove third-party elements',
       actionType: 'replace',
       selector: 'html',
-      regex: '(<!--)?.*<(script|link) .*(src|href)=(?!"(%%DOMAIN%%|#)).*>.*(?:-->)?',
+      regex: '(<!--)?.*<(script|link) .*(src|href)=(?!"($HOST|#)).*>.*(?:-->)?',
       replace: '',
     }, {
       log: 'Remove javascript:void(0)',
@@ -82,7 +82,7 @@ module.exports = [
       actionType: 'replace',
       selector: 'style',
       regex: 'url\\(["\']?((?!http(s?))[^\)^"^\']*)["\']?\\)',
-      replace: 'url("%%DOMAIN%%/$1")',
+      replace: 'url("$HOST/$1")',
     }],
   },
   {
@@ -161,15 +161,18 @@ module.exports = [
       selector: 'img',
       customFunc: async (action, elements, page) => {
         try {
-          sizeMap = await page.$$eval('img', (imgs) => {
-            return imgs.map(img =>[img.width, img.height]);
-          });
-          for (let i=0; i<elements.length; i++) {
-            elements[i].setAttribute('width', sizeMap[i][0]);
-            elements[i].setAttribute('height', sizeMap[i][1]);
+          if (elements && elements.length) {
+            sizeMap = await page.$$eval('img', (imgs) => {
+              return imgs.map(img =>[img.width, img.height]);
+            });
+            for (let i=0; i<elements.length; i++) {
+              elements[i].setAttribute('width', sizeMap[i][0]);
+              elements[i].setAttribute('height', sizeMap[i][1]);
+            }
           }
         } catch (e) {
           console.error(e);
+          return Promise.reject(e);
         }
         return Promise.resolve();
       },
