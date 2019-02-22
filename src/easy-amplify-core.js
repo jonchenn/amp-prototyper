@@ -117,7 +117,7 @@ async function runAction(action, sourceDom, page) {
 
     case 'replaceBasedOnAmpErrors':
       elements = sourceDom.querySelectorAll(action.selector);
-      if (!elements.length) return `No matched regex: ${action.selector}`;
+      if (!elements.length) throw new Error(`No matched element(s): ${action.selector}`);
 
       let ampErrorMatches = matchAmpErrors(ampErrors, action.ampErrorRegex);
       let regexStr;
@@ -143,7 +143,7 @@ async function runAction(action, sourceDom, page) {
 
     case 'replace':
       elements = sourceDom.querySelectorAll(action.selector);
-      if (!elements.length) return `No matched regex: ${action.selector}`;
+      if (!elements.length) throw new Error(`No matched element(s): ${action.selector}`);
 
       elements.forEach((el) => {
         elHtml = el.innerHTML;
@@ -158,7 +158,7 @@ async function runAction(action, sourceDom, page) {
 
     case 'replaceOrInsert':
       el = sourceDom.querySelector(action.selector);
-      if (!el) return `No matched regex: ${action.selector}`;
+      if (!el) throw new Error(`No matched element(s): ${action.selector}`);
 
       elHtml = el.innerHTML;
       regex = new RegExp(action.regex, 'ig');
@@ -178,7 +178,7 @@ async function runAction(action, sourceDom, page) {
 
     case 'insertBottom':
       el = sourceDom.querySelector(action.selector);
-      if (!el) return `No matched regex: ${action.selector}`;
+      if (!el) throw new Error(`No matched element(s): ${action.selector}`);
 
       el.innerHTML += (action.value || '');
       message = `Inserted in ${action.selector}`;
@@ -186,7 +186,7 @@ async function runAction(action, sourceDom, page) {
 
     case 'appendAfter':
       el = sourceDom.querySelector(action.selector);
-      if (!el) return `No matched regex: ${action.selector}`;
+      if (!el) throw new Error(`No matched element(s): ${action.selector}`);
 
       newEl = sourceDom.createElement('template');
       newEl.innerHTML = action.value;
@@ -199,7 +199,7 @@ async function runAction(action, sourceDom, page) {
     // Merge multiple DOMs into one.
     case 'mergeContent':
       elements = sourceDom.querySelectorAll(action.selector);
-      if (!elements.length) return `No matched regex: ${action.selector}`;
+      if (!elements.length) throw new Error(`No matched element(s): ${action.selector}`);
 
       var mergedContent = '';
       var firstEl = elements[0];
@@ -216,7 +216,7 @@ async function runAction(action, sourceDom, page) {
 
     case 'inlineExternalStyles':
       el = sourceDom.querySelector(action.selector);
-      if (!el) return `No matched regex: ${action.selector}`;
+      if (!el) throw new Error(`No matched element(s): ${action.selector}`);
 
       newStyles = action.minify ?
         new CleanCSS({}).minify(allStyles).styles : allStyles;
@@ -229,7 +229,7 @@ async function runAction(action, sourceDom, page) {
 
     case 'removeUnusedStyles':
       elements = sourceDom.querySelectorAll(action.selector);
-      if (!elements.length) return `No matched regex: ${action.selector}`;
+      if (!elements.length) throw new Error(`No matched element(s): ${action.selector}`);
 
       body = sourceDom.querySelector('body');
       let oldSize = 0, newSize = 0;
@@ -250,7 +250,7 @@ async function runAction(action, sourceDom, page) {
 
     case 'customFunc':
       elements = sourceDom.querySelectorAll(action.selector);
-      if (!elements.length) return `No matched regex: ${action.selector}`;
+      if (!elements.length) throw new Error(`No matched element(s): ${action.selector}`);
 
       if (action.customFunc) {
         await action.customFunc(action, elements, page);
@@ -261,7 +261,7 @@ async function runAction(action, sourceDom, page) {
       console.log(`${action.actionType} is not supported.`.red);
       break;
   }
-  console.log(`\t${action.log || action.actionType}: ${message}`.reset);
+  console.log(`\t${action.log || action.actionType}:`.reset + ` ${message}`.dim);
 
   // Beautify html and update to source DOM.
   html = beautifyHtml(sourceDom);
@@ -362,7 +362,8 @@ async function amplifyFunc(browser, url, steps, argv) {
         if (verbose) {
           console.log(e);
         } else {
-          console.log(`Error: ${e.message}`.red);
+          console.log(`\t${action.log || action.type}:`.reset +
+            ` Error: ${e.message}`.red);
         }
       }
     }

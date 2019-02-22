@@ -160,24 +160,20 @@ module.exports = [
       actionType: 'customFunc',
       selector: 'img',
       customFunc: async (action, elements, page) => {
-        try {
-          if (elements && elements.length) {
-            sizeMap = await page.$$eval('img', (imgs) => {
-              return imgs.map(img =>[img.width, img.height]);
-            });
-            for (let i=0; i<elements.length; i++) {
+        if (elements && elements.length) {
+          sizeMap = await page.$$eval('img', (imgs) => {
+            return imgs.map(img =>[img.width, img.height]);
+          });
+          for (let i=0; i<elements.length; i++) {
+            if (sizeMap && sizeMap[i]) {
               elements[i].setAttribute('width', sizeMap[i][0]);
               elements[i].setAttribute('height', sizeMap[i][1]);
             }
           }
-        } catch (e) {
-          console.error(e);
-          return Promise.reject(e);
         }
-        return Promise.resolve();
       },
     }, {
-      log: 'replace img to amp-img',
+      log: 'Replace img to amp-img',
       actionType: 'replace',
       selector: 'html',
       regex: '<img ((\\w*="[^"]*"\\s?)*)>',
