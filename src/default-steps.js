@@ -156,6 +156,24 @@ module.exports = [
   {
     name: 'Convert img to amp-img',
     actions: [{
+      log: 'Set width and height for amp-img',
+      actionType: 'customFunc',
+      selector: 'img',
+      customFunc: async (action, elements, page) => {
+        try {
+          sizeMap = await page.$$eval('img', (imgs) => {
+            return imgs.map(img =>[img.width, img.height]);
+          });
+          for (let i=0; i<elements.length; i++) {
+            elements[i].setAttribute('width', sizeMap[i][0]);
+            elements[i].setAttribute('height', sizeMap[i][1]);
+          }
+        } catch (e) {
+          console.error(e);
+        }
+        return Promise.resolve();
+      },
+    }, {
       log: 'replace img to amp-img',
       actionType: 'replace',
       selector: 'html',
@@ -165,20 +183,8 @@ module.exports = [
       log: 'Set responsive layout',
       actionType: 'setAttribute',
       selector: 'amp-img',
-      attribute: 'width',
-      value: '1',
-    }, {
-      log: 'Set responsive layout',
-      actionType: 'setAttribute',
-      selector: 'amp-img',
-      attribute: 'height',
-      value: '1',
-    }, {
-      log: 'Set responsive layout',
-      actionType: 'setAttribute',
-      selector: 'amp-img',
       attribute: 'layout',
       value: 'responsive',
     }],
-  },
+  }
 ];

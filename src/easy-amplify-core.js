@@ -148,7 +148,8 @@ async function amplifyFunc(browser, url, steps, argv) {
     if (!step.actions || step.skip) continue;
     console.log(`Step ${i+1}: ${step.name}`.yellow);
 
-    step.actions.forEach(async (action) => {
+    for (let j = 0; j < step.actions.length; j++) {
+      let action = step.actions[j];
       Object.keys(action).forEach((prop) => {
         action[prop] = replaceEnvVars(action[prop]);
       });
@@ -317,8 +318,11 @@ async function amplifyFunc(browser, url, steps, argv) {
           break;
 
         case 'customFunc':
+          elements = sourceDom.querySelectorAll(action.selector);
+          if (!elements.length) return `No matched regex: ${action.selector}`;
+
           if (action.customFunc) {
-            await action.customFunc(action, sourceDom, page);
+            await action.customFunc(action, elements, page);
           }
           break;
 
@@ -334,7 +338,12 @@ async function amplifyFunc(browser, url, steps, argv) {
 
       // Validate AMP.
       ampErrors = await validateAMP(html);
-    });
+
+      // Update page content with updated HTML.
+      await page.setContent(html, {
+        waitUntil: 'networkidle0',
+      });
+    }
 
     // Write HTML to file.
     await writeToFile(`output-step-${i+1}.html`, html);
@@ -345,7 +354,7 @@ async function amplifyFunc(browser, url, steps, argv) {
     });
 
     // Take and save screenshot to file.
-    await page.waitFor(200);
+    await page.waitFor(500);
     await page.screenshot({
       path: `output/${outputPath}/output-step-${i+1}.png`
     });
