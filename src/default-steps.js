@@ -36,10 +36,10 @@ module.exports = [
       regex: 'javascript:.*void(0)',
       replace: '',
     }, {
-      log: 'Remove nonscript',
+      log: 'Remove noscript',
       actionType: 'replace',
       selector: 'html',
-      regex: '<nonscript[^<]*(?:(?!<\/nonscript>)<[^<]*)*<\/nonscript>',
+      regex: '<noscript[^<]*(?:(?!<\/noscript>)<[^<]*)*<\/noscript>',
       replace: '',
     }],
   },
