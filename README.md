@@ -29,7 +29,7 @@ and render pages.
 Run the following to run the script locally.
 
 ```
-git clone git@github.com:jonchenn/easy-amplify.git
+git clone https://github.com/jonchenn/easy-amplify.git
 cd easy-amplify
 yarn install
 ```
