@@ -1,5 +1,5 @@
 {
-  "name": "easy-amplify",
+  "name": "amp-prototyper",
   "version": "1.0.0",
   "description": "",
   "main": "main.js",
@@ -10,14 +10,14 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/jonchenn/easy-amplify.git"
+    "url": "git+https://github.com/jonchenn/amp-prototyper.git"
   },
   "author": "",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/jonchenn/easy-amplify/issues"
+    "url": "https://github.com/jonchenn/amp-prototyper/issues"
   },
-  "homepage": "https://github.com/jonchenn/easy-amplify#readme",
+  "homepage": "https://github.com/jonchenn/amp-prototyper#readme",
   "dependencies": {
     "amphtml-validator": "^1.0.23",
     "clean-css": "^4.2.1",
