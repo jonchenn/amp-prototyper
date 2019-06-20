@@ -87,7 +87,7 @@ module.exports = [
       log: 'Update relative URLs in CSS.',
       actionType: 'replace',
       selector: 'style',
-      regex: 'url\\(["\']?((?!http(s?))[^\)^"^\']*)["\']?\\)',
+      regex: 'url\\(["\']?((?!http(s?)(?!data:)[^\)^"^\']*)["\']?\\)',
       replace: 'url("$HOST/$1")',
     }],
   },
