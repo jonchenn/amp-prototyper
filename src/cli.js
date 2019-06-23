@@ -1,6 +1,6 @@
 const {amplify} = require('./core');
 const argv = require('minimist')(process.argv.slice(2));
-const steps = require('./default-steps.js')
+const steps = require('../steps/default-steps.js')
 
 function printUsage() {
   let usage = `
@@ -10,8 +10,10 @@ Required:
   URL\tURL to the page to convert.
 
 Options:
-  --steps=FILE\tPath to the custom steps JS file.
+  --steps=FILE\tPath to the custom steps JS file. If not defined, it will use ./steps/default-steps.js
   --output=FILE\tPath to the output file.
+  --device=DEVICE_NAME\tUse specific device name for screenshots.
+  --headless=(true|false)\tWhether to show browser.
   --verbose\tDisplay AMP validation errors.
 
 Examples:
@@ -36,9 +38,7 @@ Examples:
 async function begin() {
   let url = argv['_'][0], output = argv['output'];
   let customSteps = argv['steps'] ?
-      require(`./${argv['steps']}`) : null;
-  let moreSteps = argv['moreSteps'] ?
-      require(`./${argv['moreSteps']}`) : null;
+      require(`../${argv['steps']}`) : null;
 
   if (!url) {
     printUsage();
@@ -46,8 +46,6 @@ async function begin() {
   }
 
   let allSteps = customSteps || steps;
-  if (moreSteps) allSteps = allSteps.concat(moreSteps);
-
   if (customSteps) console.log(`Use custom steps ${argv['steps']}`);
 
   amplify(url, allSteps, argv);

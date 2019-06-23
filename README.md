@@ -48,7 +48,7 @@ Required arguments:
 
 ### Options
 
--   `--steps=FILE` - Path to the custom steps JS file.
+-   `--steps=FILE` - Path to the custom steps JS file. If not defined, it will use ./steps/default-steps.js
 -   `--output=FILE` - Path to the output file.
 -   `--device=DEVICE_NAME` - Use specific device name for screenshots.
 -   `--headless=(true|false)` - Whether to show browser.
