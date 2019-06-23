@@ -4,10 +4,10 @@ const steps = require('./default-steps.js')
 
 function printUsage() {
   let usage = `
-Usage: ./amp-prototyper --url=[URL]
+Usage: ./amp-prototyper [URL]
 
 Required:
-  --url=URL\tURL to the page to convert.
+  URL\tURL to the page to convert.
 
 Options:
   --steps=FILE\tPath to the custom steps JS file.
@@ -15,17 +15,17 @@ Options:
   --verbose\tDisplay AMP validation errors.
 
 Examples:
-  # Amplify a page and generate results in /output folder.
-  ./amp-prototyper --url=http://127.0.0.1:8080
+  # AMPlify a page and generate results in /output folder.
+  ./amp-prototyper http://127.0.0.1:8080
 
-  # Amplify a page and generate results in /output/test folder.
-  ./amp-prototyper --url=http://127.0.0.1:8080 --output=test
+  # AMPlify a page and generate results in /output/test folder.
+  ./amp-prototyper http://127.0.0.1:8080 --output=test
 
-  # Amplify a page with customized steps.
-  ./amp-prototyper --url=http://127.0.0.1:8080 --steps=custom/mysteps.js
+  # AMPlify a page with customized steps.
+  ./amp-prototyper http://127.0.0.1:8080 --steps=custom/mysteps.js
 
-  # Amplify a page and display AMP validation details.
-  ./amp-prototyper --url=http://127.0.0.1:8080 --verbose
+  # AMPlify a page and display AMP validation details.
+  ./amp-prototyper http://127.0.0.1:8080 --verbose
   `;
   console.log(usage);
 }
@@ -34,7 +34,7 @@ Examples:
  * Main CLI function.
  */
 async function begin() {
-  let url = argv['url'], output = argv['output'];
+  let url = argv['_'][0], output = argv['output'];
   let customSteps = argv['steps'] ?
       require(`./${argv['steps']}`) : null;
   let moreSteps = argv['moreSteps'] ?
