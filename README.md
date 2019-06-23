@@ -1,7 +1,7 @@
 # amp-prototyper
 
 This Node.js-based script is a prototyping tool that automatically converts a HTML page to a
-[Accelerated Mobile Page (AMP)](https://amp.dev) for demonstrating
+[Accelerated Mobile Page (AMP)](https://amp.dev) to demonstrate
 performance gains with AMP. It follows
 [the general guideline of converting HTML to AMP](https://amp.dev/documentation/guides-and-tutorials/start/converting/).
 
