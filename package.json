@@ -5,7 +5,7 @@
   "main": "main.js",
   "scripts": {
     "sample": "http-server sample_web/",
-    "test-output": "http-server output/",
+    "output": "http-server output/",
     "start": "node run.js"
   },
   "repository": {
