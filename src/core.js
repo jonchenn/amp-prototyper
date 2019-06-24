@@ -347,7 +347,7 @@ async function amplifyFunc(browser, url, steps, argv) {
   const response = await page.goto(url);
   let pageSource = await response.text();
   let pageContent = await page.content();
-  sourceDom = new JSDOM(pageContent).window.document;
+  sourceDom = new JSDOM(pageContent, {url: host}).window.document;
   let ampErrors = await validateAMP(pageContent);
 
   // Output initial HTML, screenshot and amp errors.
