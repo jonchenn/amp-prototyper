@@ -10,6 +10,7 @@ const amphtmlValidator = require('amphtml-validator');
 const purify = require("purify-css")
 const argv = require('minimist')(process.argv.slice(2));
 const CleanCSS = require('clean-css');
+const Diff = require('diff');
 const assert = require('assert');
 const {
   JSDOM
@@ -53,7 +54,7 @@ async function validateAMP(html, printResult) {
       errors.push(msg);
     });
     if (printResult)
-        console.log(`\t${errors.length} AMP validation errors.`.red);
+      console.log(`\t${errors.length} AMP validation errors.`.red);
   }
   return Promise.resolve(errors);
 }
@@ -85,9 +86,13 @@ async function writeToFile(filename, html, options) {
 }
 
 async function runAction(action, sourceDom, page) {
-  let elements, el, destEl, elHtml, regex, matches, newEl, body, newStyles;
-  let numReplaced = 0;
+  let elements, el, destEl, elHtml, regex, matches, newEl, body;
+  let numReplaced = 0,
+    oldStyles = '',
+    newStyles = '',
+    optimizedStyles = '';
   let message = action.actionType;
+  let result = {};
 
   // Replace the action's all properties with envVars values.
   Object.keys(action).forEach((prop) => {
@@ -126,7 +131,7 @@ async function runAction(action, sourceDom, page) {
       elements.forEach((el) => {
         ampErrorMatches.forEach(matches => {
           regexStr = action.regex;
-          for (let i=1; i<=9; i++) {
+          for (let i = 1; i <= 9; i++) {
             if (matches[i]) {
               regexStr = regexStr.replace(new RegExp('\\$' + i, 'g'), matches[i]);
               matchSet.add(matches[i])
@@ -213,7 +218,7 @@ async function runAction(action, sourceDom, page) {
       message = `Moved ${elements.length} elements`;
       break;
 
-    // Merge multiple DOMs into one.
+      // Merge multiple DOMs into one.
     case 'mergeContent':
       elements = sourceDom.querySelectorAll(action.selector);
       if (!elements.length) throw new Error(`No matched element(s): ${action.selector}`);
@@ -251,20 +256,52 @@ async function runAction(action, sourceDom, page) {
       if (!elements.length) throw new Error(`No matched element(s): ${action.selector}`);
 
       body = sourceDom.querySelector('body');
-      let oldSize = 0, newSize = 0;
+      oldStyles = '';
+      newStyles = '';
+      optimizedStyles = '';
+
       elements.forEach((el) => {
-        oldSize += el.innerHTML.length;
-        newStyles = new CleanCSS({}).minify(el.innerHTML).styles;
-        newStyles = purify(body.innerHTML, newStyles, {
+        // if (el.tagName !== 'style') return;
+        oldStyles += el.innerHTML;
+
+        // Use CleanCSS to prevent breaking from bad syntax.
+        newStyles = new CleanCSS({
+          all: false, // Disabled minification.
+          format: 'beautify',
+        }).minify(el.innerHTML).styles;
+
+        // Use PurifyCSS to remove unused CSS.
+        let purifyOptions = {
           minify: action.minify || false,
-        });
-        newSize += newStyles.length;
+        };
+        newStyles = purify(body.innerHTML, newStyles, purifyOptions);
         el.innerHTML = newStyles;
+        optimizedStyles += '\n\n' + newStyles;
       });
 
-      let ratio = Math.round(
-          (oldSize - newSize) / oldSize * 100);
-      message = `Removed ${ratio}% styles. (${oldSize} -> ${newSize})`;
+      // Collect unused styles.
+      if (action.outputCSS) {
+        let diff = Diff.diffLines(optimizedStyles, oldStyles, {
+          ignoreWhitespace: true,
+        });
+        let unusedStyles = '';
+        diff.forEach((part) => {
+          unusedStyles += part.value + '\n';
+        });
+        unusedStyles = new CleanCSS({
+          all: false, // Disabled minification.
+          format: 'beautify',
+        }).minify(unusedStyles).styles;
+
+        // Return back to action result.
+        result.optimizedStyles = optimizedStyles;
+        result.unusedStyles = unusedStyles;
+      }
+
+      let oldSize = oldStyles.length,
+        newSize = optimizedStyles.length;
+      let ratio = Math.round((oldSize - newSize) / oldSize * 100);
+      message = `Removed ${ratio}% styles. (${oldSize} -> ${newSize} bytes)`;
       break;
 
     case 'customFunc':
@@ -294,7 +331,8 @@ async function runAction(action, sourceDom, page) {
     waitUntil: 'networkidle0',
   });
 
-  return html;
+  result.html = html;
+  return result;
 }
 
 async function amplifyFunc(browser, url, steps, argv) {
@@ -347,7 +385,9 @@ async function amplifyFunc(browser, url, steps, argv) {
   const response = await page.goto(url);
   let pageSource = await response.text();
   let pageContent = await page.content();
-  sourceDom = new JSDOM(pageContent, {url: host}).window.document;
+  sourceDom = new JSDOM(pageContent, {
+    url: host
+  }).window.document;
   let ampErrors = await validateAMP(pageContent);
 
   // Output initial HTML, screenshot and amp errors.
@@ -363,6 +403,7 @@ async function amplifyFunc(browser, url, steps, argv) {
   let i = 1;
   let stepOutput = '';
   let html = beautifyHtml(sourceDom);
+  let actionResult, optimizedStyles, unusedStyles, oldStyles;
 
   for (let i = 0; i < steps.length; i++) {
     consoleOutputs = [];
@@ -376,7 +417,11 @@ async function amplifyFunc(browser, url, steps, argv) {
 
       try {
         // The sourceDom will be updated after each action.
-        html = await runAction(action, sourceDom, page);
+        actionResult = await runAction(action, sourceDom, page);
+        html = actionResult.html;
+        optimizedStyles = actionResult.optimizedStyles;
+        unusedStyles = actionResult.unusedStyles;
+
       } catch (e) {
         if (verbose) {
           console.log(e);
@@ -389,6 +434,15 @@ async function amplifyFunc(browser, url, steps, argv) {
 
     // Write HTML to file.
     await writeToFile(`steps/output-step-${i+1}.html`, html);
+
+    if (optimizedStyles) {
+      await writeToFile(`steps/output-step-${i+1}-optimized-css.css`,
+        optimizedStyles);
+    }
+    if (unusedStyles) {
+      await writeToFile(`steps/output-step-${i+1}-unused-css.css`,
+        unusedStyles);
+    }
 
     // Update page content with updated HTML.
     await page.setContent(html, {
@@ -404,7 +458,7 @@ async function amplifyFunc(browser, url, steps, argv) {
     await writeToFile(`steps/output-step-${i+1}-log.txt`, (ampErrors || []).join('\n'));
 
     // Print AMP validation result.
-    ampErrors = await validateAMP(html, true /* printResult */);
+    ampErrors = await validateAMP(html, true /* printResult */ );
   }
 
   // Write final outcome to file.
@@ -427,7 +481,7 @@ async function amplify(url, steps, argv) {
     await amplifyFunc(browser, url, steps, argv);
     console.log('Complete.'.green);
 
-  } catch(e) {
+  } catch (e) {
     console.error(e);
     console.log('Complete with errors.'.yellow);
 

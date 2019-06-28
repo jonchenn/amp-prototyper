@@ -2,7 +2,7 @@ module.exports = [
   {
     name: 'Make relative URLs absolute',
     actions: [{
-      log: 'Adding https for URLs starts with \/\/',
+      log: 'Adding https for URLs that start with \/\/',
       actionType: 'replace',
       selector: 'head, body',
       regex: '(href|src)=["\']\/\/([^\)^"^\']*)["\']',
