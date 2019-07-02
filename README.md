@@ -5,18 +5,18 @@ This Node.js-based script is a prototyping tool that automatically converts a HT
 ## TL;DR
 
 - The goal is to showcase the advantages of AMP in page load performance.
-- It generates a converted AMP, a screenshot, and AMP validation errors for each step.
-- It automatically converts a HTML page to AMP with pre-defined steps. You can customize steps for specific scenarios.
+- It generates a converted AMP HTML, a screenshot, and AMP validation errors for each step.
+- It automatically converts a HTML page to AMP with pre-defined steps. You can customize the steps for specific scenarios.
 
 ## What is amp-prototyper
 
-The main goal is to minimize the effort of creating a prototype AMP page from a canonical HTML page, such as adding AMP boilerplate, removing custom Javascript, making all CSS inline, etc. The outcome of this tool includes converted AMP, the screenshot, and AMP validation errors for each conversion step.
+The main goal is to minimize the effort of creating a prototype AMP page from a canonical HTML page, such as adding AMP boilerplate, removing custom Javascript, making all CSS inline, etc. The output of this tool includes converted AMP, the screenshot, and AMP validation errors for each conversion step.
 
 This script uses [puppeteer](https://github.com/GoogleChrome/puppeteer) to load and render pages.
 
 ## Non-scope
 
-This tool doesn't aim for converting production-ready AMP pages from any arbitrary HTML pages. If your goal is to create high-quality AMP pages for production, please follow [the general guideline of converting HTML to AMP](https://amp.dev/documentation/guides-and-tutorials/start/converting/).
+This tool doesn't aim to create production-ready AMP pages from any arbitrary HTML pages. If your goal is to create high-quality AMP pages for production, please follow [the general guideline of converting HTML to AMP](https://amp.dev/documentation/guides-and-tutorials/start/converting/).
 
 ## Getting started
 
