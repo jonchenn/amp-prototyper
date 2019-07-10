@@ -12,9 +12,13 @@ const argv = require('minimist')(process.argv.slice(2));
 const CleanCSS = require('clean-css');
 const Diff = require('diff');
 const assert = require('assert');
+const httpServer = require('http-server');
 const {
   JSDOM
 } = require("jsdom");
+const PNG = require('pngjs').PNG;
+const pixelmatch = require('pixelmatch');
+
 
 let outputPath, verbose, envVars;
 let styleByUrls = {},
@@ -390,7 +394,7 @@ async function amplifyFunc(browser, url, steps, argv) {
   console.log('Step 0: loading page.'.yellow);
 
   // Open URL and save source to sourceDom.
-  const response = await page.goto(url);
+  let response = await page.goto(url);
   let pageSource = await response.text();
   let pageContent = await page.content();
   sourceDom = new JSDOM(pageContent, {
@@ -401,7 +405,8 @@ async function amplifyFunc(browser, url, steps, argv) {
   // Output initial HTML, screenshot and amp errors.
   await writeToFile(`steps/output-step-0.html`, pageContent);
   await page.screenshot({
-    path: `output/${outputPath}/steps/output-step-0.png`
+    path: `output/${outputPath}/steps/output-step-0.png`,
+    fullPage: true
   });
   await writeToFile(`steps/output-step-0-log.txt`, ampErrors.join('\n'));
 
@@ -412,6 +417,19 @@ async function amplifyFunc(browser, url, steps, argv) {
   let stepOutput = '';
   let html = beautifyHtml(sourceDom);
   let actionResult, optimizedStyles, unusedStyles, oldStyles;
+
+  // Since puppeteer thinks were still on a public facing server
+  // setting it to localhost will allow us to continue seeing
+  // a page even with some errors!
+  let server = httpServer.createServer({root:`output/${outputPath}/steps/`});
+  server.listen(8080, '127.0.0.1', () => {
+    console.log('Local server started!');
+  });
+  response = await page.goto("http://127.0.0.1:8080");
+
+  if(!response.ok()){
+    console.warn('Could not connect to local server with Puppeteer!');
+  }
 
   for (let i = 0; i < steps.length; i++) {
     consoleOutputs = [];
@@ -458,9 +476,14 @@ async function amplifyFunc(browser, url, steps, argv) {
     });
 
     // Take and save screenshot to file.
-    await page.waitFor(500);
+    // await page.waitFor(500);
+
+    // Uncomment to see what the browser is seeing
+    // await writeToFile(`steps/output-step-${i+1}-page-output.html`, await page.content());
+
     await page.screenshot({
-      path: `output/${outputPath}/steps/output-step-${i+1}.png`
+      path: `output/${outputPath}/steps/output-step-${i+1}.png`,
+      fullPage: true
     });
 
     await writeToFile(`steps/output-step-${i+1}-log.txt`, (ampErrors || []).join('\n'));
@@ -468,13 +491,25 @@ async function amplifyFunc(browser, url, steps, argv) {
     // Print AMP validation result.
     ampErrors = await validateAMP(html, true /* printResult */ );
   }
+
+  //Add the disclaimer watermark
   html = addDisclaminerWatermark(html);
+
+
+  // need to make sure we close out the server that was used!
+  await server.close();
+
+  console.log('Local server closed!');
+
   // Write final outcome to file.
   await writeToFile(`output-final.html`, html);
   await page.screenshot({
-    path: `output/${outputPath}/output-final.png`
+    path: `output/${outputPath}/output-final.png`,
+    fullPage: true
   });
   await writeToFile(`output-final-log.txt`, (ampErrors || []).join('\n'));
+
+  compareImages(`output/${outputPath}/steps/output-step-0.png`,`output/${outputPath}/output-final.png`, `output/${outputPath}/output-difference.png`);
 }
 
 async function amplify(url, steps, argv) {
@@ -496,6 +531,20 @@ async function amplify(url, steps, argv) {
   } finally {
     if (browser) await browser.close();
   }
+}
+
+function compareImages(image1Path, image2Path, diffPath){
+  const img1 = PNG.sync.read(fse.readFileSync(image1Path));
+  const img2 = PNG.sync.read(fse.readFileSync(image2Path));
+
+  const {width, height} = img1;
+  const diff = new PNG({width,height});
+
+  const mismatch = pixelmatch(img1.data, img2.data, diff.data, width, height, {threshold: 0.1});
+
+  console.log(`Difference between original and converted: ${((mismatch/(width * height)) * 100).toFixed(2)}%`);
+
+  fse.writeFileSync(diffPath, PNG.sync.write(diff));
 }
 
 module.exports = {

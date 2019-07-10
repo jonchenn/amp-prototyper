@@ -414,4 +414,3 @@ Collect all external CSS and append a
 <li><a href="https://github.com/jakubpawlowicz/clean-css">clean-css</a></li>
 <li><a href="https://github.com/purifycss/purifycss">purifycss</a></li>
 </ul>
-</style>
