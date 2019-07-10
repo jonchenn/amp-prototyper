@@ -16,6 +16,9 @@ const httpServer = require('http-server');
 const {
   JSDOM
 } = require("jsdom");
+const PNG = require('pngjs').PNG;
+const pixelmatch = require('pixelmatch');
+
 
 let outputPath, verbose, envVars;
 let styleByUrls = {},
@@ -394,7 +397,8 @@ async function amplifyFunc(browser, url, steps, argv) {
   // Output initial HTML, screenshot and amp errors.
   await writeToFile(`steps/output-step-0.html`, pageContent);
   await page.screenshot({
-    path: `output/${outputPath}/steps/output-step-0.png`
+    path: `output/${outputPath}/steps/output-step-0.png`,
+    fullPage: true
   });
   await writeToFile(`steps/output-step-0-log.txt`, ampErrors.join('\n'));
 
@@ -488,9 +492,12 @@ async function amplifyFunc(browser, url, steps, argv) {
   // Write final outcome to file.
   await writeToFile(`output-final.html`, html);
   await page.screenshot({
-    path: `output/${outputPath}/output-final.png`
+    path: `output/${outputPath}/output-final.png`,
+    fullPage: true
   });
   await writeToFile(`output-final-log.txt`, (ampErrors || []).join('\n'));
+
+  compareImages(`output/${outputPath}/steps/output-step-0.png`,`output/${outputPath}/output-final.png`, `output/${outputPath}/output-difference.png`);
 }
 
 async function amplify(url, steps, argv) {
@@ -512,6 +519,20 @@ async function amplify(url, steps, argv) {
   } finally {
     if (browser) await browser.close();
   }
+}
+
+function compareImages(image1Path, image2Path, diffPath){
+  const img1 = PNG.sync.read(fse.readFileSync(image1Path));
+  const img2 = PNG.sync.read(fse.readFileSync(image2Path));
+
+  const {width, height} = img1;
+  const diff = new PNG({width,height});
+
+  const mismatch = pixelmatch(img1.data, img2.data, diff.data, width, height, {threshold: 0.1});
+
+  console.log(`Difference between original and converted: ${((mismatch/(width * height)) * 100).toFixed(2)}%`);
+
+  fse.writeFileSync(diffPath, PNG.sync.write(diff));
 }
 
 module.exports = {
