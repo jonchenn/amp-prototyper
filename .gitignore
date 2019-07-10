@@ -3,3 +3,4 @@ output
 .DS_Store
 tmp
 custom
+.vscode/
