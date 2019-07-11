@@ -340,6 +340,14 @@ async function runAction(action, sourceDom, page) {
   return result;
 }
 
+//add disclaimer watermark
+//TODO: refactor disclaimer text to a static file
+function addDisclaminerWatermark(html) {
+  console.log("adding disclaimer");
+  let bodyTag = html.match(/<body[^>]*>/);
+  return bodyTag ? html.replace(bodyTag, bodyTag+"\n\n<!-- TO REMOVE: -->\n<div style='border:dotted red 3px;background-color: pink;padding: 5px 10px;position: fixed;top:150px;right:150px;font-size:30px;display:block;opacity:0.7;z-index: 10000;font-family: sans-serif;'>This is not yet a valid AMP. <p style='font-size:16px'>Please manually resovle any validation errors by adding #development=1 to end of the URL and check outputs inside the Chrome Dev Tools console, or running the validation on: https://search.google.com/test/amp</br>To remove this message, look for 'TO REMOVE' in the source code of this HTML</p></div>\n\n") : html;
+}
+
 async function amplifyFunc(browser, url, steps, argv) {
   argv = argv || {};
   verbose = argv.hasOwnProperty('verbose');
@@ -492,6 +500,10 @@ async function amplifyFunc(browser, url, steps, argv) {
     // Print AMP validation result.
     ampErrors = await validateAMP(html, true /* printResult */ );
   }
+
+  //Add the disclaimer watermark
+  html = addDisclaminerWatermark(html);
+
 
   // need to make sure we close out the server that was used!
   await server.close();
