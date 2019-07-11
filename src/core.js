@@ -522,7 +522,7 @@ async function amplifyFunc(browser, url, steps, argv) {
 
   if(!shouldcompare) return;
 
-  await compareImages(`output/${outputPath}/steps/output-step-0.png`,`output/${outputPath}/output-final.png`, `output/${outputPath}/output-difference.png`, page, server, `output/${outputPath}/output-replace.png`);
+  await compareImages(`output/${outputPath}/steps/output-step-0.png`,`output/${outputPath}/output-final.png`, `output/${outputPath}/output-difference.png`, page, 'output-final.png', server, `output/${outputPath}/output-replace.png`);
 }
 
 async function amplify(url, steps, argv) {
@@ -546,7 +546,7 @@ async function amplify(url, steps, argv) {
   }
 }
 
-async function compareImages(image1Path, image2Path, diffPath, page, server, replacementPath){
+async function compareImages(image1Path, image2Path, diffPath, page, backgroundImage, server, replacementPath){
   const img1 = PNG.sync.read(fse.readFileSync(image1Path));
   let img2 = PNG.sync.read(fse.readFileSync(image2Path));
 
@@ -561,7 +561,7 @@ async function compareImages(image1Path, image2Path, diffPath, page, server, rep
       <html>
       <head></head>
       <body style="padding:0;margin:0;">
-      <div style="padding:0; margin:0; max-height:${computedHeight}; height:${computedHeight};width:${computedWidth};background-image:url(output-final.png);background-size: contain;">
+      <div style="padding:0; margin:0; max-height:${computedHeight}; height:${computedHeight};width:${computedWidth};background-image:url(${backgroundImage});background-size: contain;">
 
       </div>
       </body>
