@@ -21,6 +21,7 @@ const pixelmatch = require('pixelmatch');
 
 
 let outputPath, verbose, envVars;
+let computedHeight, computedWidth;
 let styleByUrls = {},
   allStyles = '';
 var sourceDom = null;
@@ -389,6 +390,14 @@ async function amplifyFunc(browser, url, steps, argv) {
   let response = await page.goto(url);
   let pageSource = await response.text();
   let pageContent = await page.content();
+  computedHeight = await page.$eval('body', (ele) => {
+    let compStyles = window.getComputedStyle(ele);
+    return compStyles.getPropertyValue('height');
+  });
+  computedWidth = await page.$eval('body', (ele) => {
+    let compStyles = window.getComputedStyle(ele);
+    return compStyles.getPropertyValue('width');
+  });
   sourceDom = new JSDOM(pageContent, {
     url: host
   }).window.document;
@@ -413,7 +422,7 @@ async function amplifyFunc(browser, url, steps, argv) {
   // Since puppeteer thinks were still on a public facing server
   // setting it to localhost will allow us to continue seeing
   // a page even with some errors!
-  let server = httpServer.createServer({root:`output/${outputPath}/steps/`});
+  let server = httpServer.createServer({root:`output/${outputPath}/`});
   server.listen(8080, '127.0.0.1', () => {
     console.log('Local server started!');
   });
@@ -497,7 +506,11 @@ async function amplifyFunc(browser, url, steps, argv) {
   });
   await writeToFile(`output-final-log.txt`, (ampErrors || []).join('\n'));
 
-  compareImages(`output/${outputPath}/steps/output-step-0.png`,`output/${outputPath}/output-final.png`, `output/${outputPath}/output-difference.png`);
+  let shouldcompare = argv['shouldcompare'] ? argv['shouldcompare'] === 'true' : true;
+
+  if(!shouldcompare) return;
+
+  await compareImages(`output/${outputPath}/steps/output-step-0.png`,`output/${outputPath}/output-final.png`, `output/${outputPath}/output-difference.png`, page, server, `output/${outputPath}/output-replace.png`);
 }
 
 async function amplify(url, steps, argv) {
@@ -521,11 +534,36 @@ async function amplify(url, steps, argv) {
   }
 }
 
-function compareImages(image1Path, image2Path, diffPath){
+async function compareImages(image1Path, image2Path, diffPath, page, server, replacementPath){
   const img1 = PNG.sync.read(fse.readFileSync(image1Path));
-  const img2 = PNG.sync.read(fse.readFileSync(image2Path));
+  let img2 = PNG.sync.read(fse.readFileSync(image2Path));
 
-  const {width, height} = img1;
+  let {width, height} = img1;
+  if(img1.height > img2.height) {
+    server = httpServer.createServer({root:`output/${outputPath}/`});
+    server.listen(8080, '127.0.0.1', () => {
+      console.log('Local server started!');
+    });
+    const newscreenshot = `
+      <!DOCTYPE html>
+      <html>
+      <head></head>
+      <body style="padding:0;margin:0;">
+      <div style="padding:0; margin:0; max-height:${computedHeight}; height:${computedHeight};width:${computedWidth};background-image:url(output-final.png);background-size: contain;">
+
+      </div>
+      </body>
+      </html>
+    `;
+    await page.setContent(newscreenshot);
+    await writeToFile(`output-replace.html`, await page.content());
+    await page.screenshot({
+      path: replacementPath,
+      fullPage: true
+    });
+    server.close();
+    img2 = PNG.sync.read(fse.readFileSync(replacementPath));
+  }
   const diff = new PNG({width,height});
 
   const mismatch = pixelmatch(img1.data, img2.data, diff.data, width, height, {threshold: 0.1});

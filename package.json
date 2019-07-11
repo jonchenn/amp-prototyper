@@ -6,7 +6,8 @@
   "scripts": {
     "sample": "http-server sample_web/",
     "output": "http-server output/",
-    "start": "node run.js"
+    "start": "node run.js",
+    "test": "node test/url-tests.js"
   },
   "repository": {
     "type": "git",
