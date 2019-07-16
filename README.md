@@ -123,6 +123,15 @@ yarn output
 
 Open up the localhost URL with a browser. For example: <http://127.0.0.1:8080>
 
+Check the image comparsion to see visual differences in the original URL and AMP HTML
+
+Remove the watermark in the AMP HTML and review the code for additional changes/AMP validation error fixes
+
+### Caveats
+
+- Styles from '@import' media queries must be manually added
+- HTML containing ShadowDOMs and nested ShadowDOMS are unsupported
+
 ## Customize steps
 
 ### Structure of steps
@@ -416,7 +425,4 @@ Collect all external CSS and append a
 <li><a href="https://github.com/purifycss/purifycss">purifycss</a></li>
 </ul>
 
-### Caveats
 
-Styles from '@import' media queries must be manually added
-HTML containing ShadowDOMs and nested ShadowDOMS are unsupported
