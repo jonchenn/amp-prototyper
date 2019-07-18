@@ -1,96 +1,99 @@
 require('colors');
-const fse = require('fs-extra');
+const { readFileSync, createReadStream, createWriteStream } = require('fs-extra');
 const puppeteer = require('puppeteer');
 const pixelmatch = require('pixelmatch');
-const PNG = require('pngjs').PNG;
+const devices = require('puppeteer/DeviceDescriptors');
+const { PNG } = require('pngjs');
 const prototyper = require('../src/core');
 const steps = require('../steps/default-steps');
 const urlsToTest = [
-  //'https://www.thinkwithgoogle.com/',
-  'https://www.dulcolax.com/',
-  //'https://www.ancestrydna.com/',
-  //'https://www.newegg.com/'
+  //{url:'https://www.thinkwithgoogle.com/', percentage: '0.66'},
+  //{url:'https://www.dulcolax.com/', percentage: '23.57'},
+  {url: 'https://www.ancestrydna.com/', percentage: ''},
+  // {url: 'https://www.newegg.com/', percentage: ''},
+  // {url: 'https://www.libertymutual.com/', percentage: ''},
+  // {url: 'https://www.wyndhamhotels.com/', percentage: ''},
+  // {url: 'https://www.toyota.com/', percentage: ''},
+  // {url: 'https://www.applebees.com/en/to-go', percentage: ''},
+  // {url: 'https://www.nike.com/', percentage: ''},
+  // {url: 'https://www.cargurus.com/', percentage: ''},
+  // {url: 'https://www.phoenix.edu/', percentage: ''},
 ];
+
+let computedDimensions = [];
+let browser;
 
 async function tests() {
   console.log('Converting sites....'.cyan);
   let size = urlsToTest.length;
   let pass = 0;
-  // for (let [index, url ] of urlsToTest.entries()) {
+  browser = await puppeteer.launch();
+  for (let [index, url] of urlsToTest.entries()) {
+    computedDimensions.push({computedHeight:'', computedWidth: ''});
+    await prototyper.innerFunc(browser, url.url, steps, { 'shouldcompare': 'false' }, computedDimensions[index]);
+  }
+  console.log('....Completed Conversion\n'.cyan);
 
-  //   let urlWithoutProtocol = url.replace(/http(s)?:\/\//ig, '');
-  //   let outputPath = urlWithoutProtocol.replace(/\//ig, '_');
-  //   await prototyper.amplify(url, steps, { 'shouldcompare': 'false' });
-  // }
-  console.log('....Completed Conversion'.cyan);
-
-  for (let [index, url ] of urlsToTest.entries()) {
+  for (let [index, url] of urlsToTest.entries()) {
     console.log(`.......Running Test ${index + 1}`.cyan);
-    console.log(`URL: ${url}`.cyan);
+    console.log(`URL: ${url.url}`.cyan);
     console.log('Running though Prototyper'.cyan);
-    let urlWithoutProtocol = url.replace(/http(s)?:\/\//ig, '');
+    let urlWithoutProtocol = url.url.replace(/http(s)?:\/\//ig, '');
     let outputPath = urlWithoutProtocol.replace(/\//ig, '_');
 
-    const passed = await compareImages(`output/${outputPath}/steps/output-step-0.png`, `output/${outputPath}/output-final.png`, `output/${outputPath}/output-temp.png`);
-    if(passed){
+    const passed = await compareImages(`output/${outputPath}/steps/output-step-0.png`, `output/${outputPath}/output-final.png`, `output/${outputPath}/output-temp.png`, computedDimensions[index], url.percentage);
+    if (passed) {
       pass++;
     }
   }
   let message = `Passed ${pass}/${size}`;
-  if(pass === size){
+  if (pass === size) {
     console.log(message.green);
-    return 1;
+    return;
   }
   console.log(message.red);
-  return 0;
 }
 
 
 
-async function compareImages(image1Path, image2Path, tempPath) {
-  let img1 = PNG.sync.read(fse.readFileSync(image1Path));
-  let img2 = PNG.sync.read(fse.readFileSync(image2Path));
+async function compareImages(image1Path, image2Path, tempPath, computedDimensions, expectedPercentage) {
+  let img1 = PNG.sync.read(readFileSync(image1Path));
+  let img2 = PNG.sync.read(readFileSync(image2Path));
 
+  const page = await browser.newPage();
+  await page.emulate(devices['Pixel 2']);
 
 
   let { width, height } = img1;
 
-  if(img1.height > img2.height) {
-    height = img2.height;
-    let temp = new PNG({width, height});
-    await fse.createReadStream(image1Path)
-      .pipe(new PNG())
-      .on('parsed', function() {
-        this.bitblt(temp, 0,0,width,height,0,0);
-        temp.pack().pipe(fse.createWriteStream(tempPath));
-      });
-    img1 = PNG.sync.read(fse.readFileSync(tempPath));
-
-    console.log(temp.width);
-    console.log(temp.height);
-
-    console.log(img2.width);
-    console.log(img2.height);
-  } else {
-    return match(img1, img2, width, height);
+  if (img1.height !== img2.height) {
+    img2 = await prototyper.resizeImage(computedDimensions.computedHeight, computedDimensions.computedWidth, 'output-final.png', tempPath, {}, page);
+    console.debug("resizing img2");
   }
+
+  return match(img1, img2, width, height, expectedPercentage);
 
 }
 
-function match(img1, img2, width, height) {
+function match(img1, img2, width, height, expectedPercentage) {
   const diff = new PNG({ width, height });
 
-  const mismatch = pixelmatch(img1.data, img2.data, diff.data, width, height, { threshold: 0.1 });
-  const percentage = (mismatch / (width * height)) * 100;
+  const mismatch = prototyper.runComparison(img1.data, img2.data, diff, width, height);
+  const percentage = ((mismatch / (width * height)) * 100).toFixed(2);
 
-  if (percentage <= 5.0) {
+  if (percentage === expectedPercentage) {
     console.log(`Conversion passed`.green);
     return true;
   }
 
-  console.log(`Conversion not withing limits ${percentage}`.red);
+  console.log(`Conversion not within limits ${percentage}%`.red);
   return false;
 }
 
-
-tests();
+Promise.all([
+  tests()
+]).then(process.exit)
+.catch((reason) => {
+  console.log(reason);
+  process.exit();
+});
