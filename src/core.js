@@ -21,9 +21,10 @@ const pixelmatch = require('pixelmatch');
 
 
 let outputPath, verbose, envVars;
-let computedHeight, computedWidth;
+let computedDimensions = {};
 let styleByUrls = {},
   allStyles = '';
+let port = 8080;
 var sourceDom = null;
 
 function replaceEnvVars(str) {
@@ -348,7 +349,7 @@ function addDisclaminerWatermark(html) {
   return bodyTag ? html.replace(bodyTag, bodyTag+"\n\n<!-- TO REMOVE: -->\n<div style='border:dotted red 3px;background-color: pink;padding: 5px 10px;font-size: 20px;display:block;opacity: 0.8;z-index: 10000;font-family: sans-serif;width: 75%;position: fixed;left: 50%; bottom:0;margin-left: -37.5%;''>This is not yet a valid AMP <p style='font-size:14px'>Please manually resovle any validation errors by adding <b>#development=1</b> to end of the URL and checking outputs inside the Chrome Dev Tools console, <br>or running the validation on:  <a href='https://search.google.com/test/amp'>AMP test</a><br><a href='https://amp.dev/documentation/guides-and-tutorials/learn/validation-workflow/validate_amp'>Details about AMP validation</a><br><br>To remove this message, look for 'TO REMOVE' in the source code of this HTML and delete the line below</p></div>\n\n") : html;
 }
 
-async function amplifyFunc(browser, url, steps, argv) {
+async function amplifyFunc(browser, url, steps, argv, computedDimensions) {
   argv = argv || {};
   verbose = argv.hasOwnProperty('verbose');
 
@@ -398,11 +399,11 @@ async function amplifyFunc(browser, url, steps, argv) {
   let response = await page.goto(url);
   let pageSource = await response.text();
   let pageContent = await page.content();
-  computedHeight = await page.$eval('body', (ele) => {
+  computedDimensions.computedHeight = await page.$eval('body', (ele) => {
     let compStyles = window.getComputedStyle(ele);
     return compStyles.getPropertyValue('height');
   });
-  computedWidth = await page.$eval('body', (ele) => {
+  computedDimensions.computedWidth = await page.$eval('body', (ele) => {
     let compStyles = window.getComputedStyle(ele);
     return compStyles.getPropertyValue('width');
   });
@@ -431,10 +432,10 @@ async function amplifyFunc(browser, url, steps, argv) {
   // setting it to localhost will allow us to continue seeing
   // a page even with some errors!
   let server = httpServer.createServer({root:`output/${outputPath}/`});
-  server.listen(8080, '127.0.0.1', () => {
-    console.log('Local server started!');
+  server.listen(port, '127.0.0.1', () => {
+    console.log('Local server started!'.cyan);
   });
-  response = await page.goto("http://127.0.0.1:8080");
+  response = await page.goto(`http://127.0.0.1:${port}`);
 
   if(!response.ok()){
     console.warn('Could not connect to local server with Puppeteer!');
@@ -508,7 +509,7 @@ async function amplifyFunc(browser, url, steps, argv) {
   // need to make sure we close out the server that was used!
   await server.close();
 
-  console.log('Local server closed!');
+  console.log('Local server closed!'.cyan);
 
   // Write final outcome to file.
   await writeToFile(`output-final.html`, html);
@@ -522,11 +523,12 @@ async function amplifyFunc(browser, url, steps, argv) {
 
   if(!shouldcompare) return;
 
-  await compareImages(`output/${outputPath}/steps/output-step-0.png`,`output/${outputPath}/output-final.png`, `output/${outputPath}/output-difference.png`, page, 'output-final.png', server, `output/${outputPath}/output-replace.png`);
+  await compareImages(`output/${outputPath}/steps/output-step-0.png`,`output/${outputPath}/output-final.png`, `output/${outputPath}/output-difference.png`, computedDimensions.computedHeight, computedDimensions.computedWidth, page, 'output-final.png', server, `output/${outputPath}/output-replace.png`);
 }
 
 async function amplify(url, steps, argv) {
   let isHeadless = argv['headless'] ? argv['headless'] === 'true' : true;
+  port = argv['port'] || port;
 
   // Start puppeteer.
   const browser = await puppeteer.launch({
@@ -534,7 +536,7 @@ async function amplify(url, steps, argv) {
   });
 
   try {
-    await amplifyFunc(browser, url, steps, argv);
+    await amplifyFunc(browser, url, steps, argv, computedDimensions);
     console.log('Complete.'.green);
 
   } catch (e) {
@@ -546,45 +548,59 @@ async function amplify(url, steps, argv) {
   }
 }
 
-async function compareImages(image1Path, image2Path, diffPath, page, backgroundImage, server, replacementPath){
+async function compareImages(image1Path, image2Path, diffPath, computedHeight, computedWidth, page, backgroundImage, server, replacementPath){
   const img1 = PNG.sync.read(fse.readFileSync(image1Path));
   let img2 = PNG.sync.read(fse.readFileSync(image2Path));
 
   let {width, height} = img1;
   if(img1.height > img2.height) {
-    server = httpServer.createServer({root:`output/${outputPath}/`});
-    server.listen(8080, '127.0.0.1', () => {
-      console.log('Local server started!');
-    });
-    const newscreenshot = `
-      <!DOCTYPE html>
-      <html>
-      <head></head>
-      <body style="padding:0;margin:0;">
-      <div style="padding:0; margin:0; max-height:${computedHeight}; height:${computedHeight};width:${computedWidth};background-image:url(${backgroundImage});background-size: contain;">
-
-      </div>
-      </body>
-      </html>
-    `;
-    await page.setContent(newscreenshot);
-    await writeToFile(`output-replace.html`, await page.content());
-    await page.screenshot({
-      path: replacementPath,
-      fullPage: true
-    });
-    server.close();
-    img2 = PNG.sync.read(fse.readFileSync(replacementPath));
+    img2 = await resizeImage(computedHeight, computedWidth, backgroundImage, replacementPath, server, page);
   }
   const diff = new PNG({width,height});
 
-  const mismatch = pixelmatch(img1.data, img2.data, diff.data, width, height, {threshold: 0.1});
+  const mismatch = runComparison(img1.data, img2.data, diff, width, height);
 
   console.log(`Difference between original and converted: ${((mismatch/(width * height)) * 100).toFixed(2)}%`);
 
   fse.writeFileSync(diffPath, PNG.sync.write(diff));
 }
 
+async function resizeImage(height, width, imageLocation, replacementPath, server, page) {
+  server = httpServer.createServer({root:`output/${outputPath}/`});
+  await server.listen(port, '127.0.0.1', () => {
+  });
+  await page.goto(`http://127.0.0.1:${port}`);
+  const newscreenshot = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+    <meta name="viewport" content="width=device-width,minimum-scale=1,initial-scale=1">
+    </head>
+    <body style="padding:0;margin:0;">
+    <div style="padding:0; margin:0; max-height:${height}; height:${height};width:${width};background:url(${imageLocation}) no-repeat; background-size: contain;">
+
+    </div>
+    </body>
+    </html>
+  `;
+  await page.setContent(newscreenshot);
+  // Uncomment if you want to debug
+  await writeToFile(`output-replace.html`, await page.content());
+  await page.screenshot({
+    path: replacementPath,
+    fullPage: true
+  });
+  await server.close();
+  return PNG.sync.read(fse.readFileSync(replacementPath));
+}
+
+function runComparison(img1Data, img2Data, diff, width, height){
+  return pixelmatch(img1Data, img2Data, diff.data, width, height, {threshold: 0.1});
+}
+
 module.exports = {
   amplify: amplify,
+  runComparison,
+  resizeImage,
+  innerFunc: amplifyFunc
 };

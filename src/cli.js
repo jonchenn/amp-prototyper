@@ -15,6 +15,7 @@ Options:
   --device=DEVICE_NAME\tUse specific device name for screenshots.
   --headless=(true|false)\tWhether to show browser.
   --verbose\tDisplay AMP validation errors.
+  --port=PORT_NUMBER\tPort number to use to compare before and after (defaults to 8080)
 
 Examples:
   # AMPlify a page and generate results in /output folder.
@@ -28,6 +29,9 @@ Examples:
 
   # AMPlify a page and display AMP validation details.
   ./amp-prototyper http://127.0.0.1:8080 --verbose
+
+  # AMPlify a page and use a different port.
+  ./amp-prototyper http://127.0.0.1:8080 --port=3000
   `;
   console.log(usage);
 }
