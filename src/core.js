@@ -519,11 +519,15 @@ async function amplifyFunc(browser, url, steps, argv, computedDimensions) {
   });
   await writeToFile(`output-final-log.txt`, (ampErrors || []).join('\n'));
 
-  let shouldcompare = argv['shouldcompare'] ? argv['shouldcompare'] === 'true' : true;
+  let shouldcompare = argv['shouldcompare'] ? argv['shouldcompare'] === 'true' : false;
 
   if(!shouldcompare) return;
 
-  await compareImages(`output/${outputPath}/steps/output-step-0.png`,`output/${outputPath}/output-final.png`, `output/${outputPath}/output-difference.png`, computedDimensions.computedHeight, computedDimensions.computedWidth, page, 'output-final.png', server, `output/${outputPath}/output-replace.png`);
+  try{
+    await compareImages(`output/${outputPath}/steps/output-step-0.png`,`output/${outputPath}/output-final.png`, `output/${outputPath}/output-difference.png`, computedDimensions.computedHeight, computedDimensions.computedWidth, page, 'output-final.png', server, `output/${outputPath}/output-replace.png`);
+  } catch(error) {
+    console.log('Not able to compare at this time, please create issue with following info: '.yellow, error);
+  }
 }
 
 async function amplify(url, steps, argv) {
