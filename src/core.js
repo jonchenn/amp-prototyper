@@ -18,6 +18,7 @@ const {
 } = require("jsdom");
 const PNG = require('pngjs').PNG;
 const pixelmatch = require('pixelmatch');
+const watermarkTpl = require('./watermark');
 
 
 let outputPath, verbose, envVars;
@@ -346,7 +347,7 @@ async function runAction(action, sourceDom, page) {
 function addDisclaminerWatermark(html) {
   console.log("adding disclaimer");
   let bodyTag = html.match(/<body[^>]*>/);
-  return bodyTag ? html.replace(bodyTag, bodyTag+"\n\n<!-- TO REMOVE: -->\n<div style='border:dotted red 3px;background-color: pink;padding: 5px 10px;font-size: 20px;display:block;opacity: 0.8;z-index: 10000;font-family: sans-serif;width: 75%;position: fixed;left: 50%; bottom:0;margin-left: -37.5%;''>This page is not productio-ready, yet <p style='font-size:14px'>Please manually resovle any validation errors by adding <b>#development=1</b> to end of the URL and checking outputs inside the Chrome Dev Tools console, <br>or running the validation on:  <a href='https://search.google.com/test/amp'>AMP test</a><br><a href='https://amp.dev/documentation/guides-and-tutorials/learn/validation-workflow/validate_amp'>Details about AMP validation</a><br><br>To remove this message, look for 'TO REMOVE' in the source code of this HTML and delete the line below</p></div>\n\n") : html;
+  return bodyTag ? html.replace(bodyTag, bodyTag + watermarkTpl) : html;
 }
 
 async function amplifyFunc(browser, url, steps, argv, computedDimensions) {

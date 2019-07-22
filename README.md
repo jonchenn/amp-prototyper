@@ -46,8 +46,8 @@ Required arguments:
 - `--device=DEVICE_NAME` - Use specific device name for screenshots.
 - `--headless=(true|false)` - Whether to show browser.
 - `--verbose` - Display AMP validation errors.
-- `compareScreenshots=(true|false*)` - Whether to compare original site with converted.
-- `port=PORT_NUMBER` - Port number to use to compare before and after (defaults to 8080)
+- `--compareScreenshots=(true|false*)` - Whether to compare original site with converted.
+- `--port=PORT_NUMBER` - Port number to use to compare before and after (defaults to 8080)
 
 ### Examples:
 
