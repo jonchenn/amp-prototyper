@@ -15,7 +15,7 @@ Options (*denotes default value if not passed in):
   --device=DEVICE_NAME\tUse specific device name for screenshots.
   --headless=(true*|false)\tWhether to show browser.
   --verbose\tDisplay AMP validation errors.
-  --shouldcompare=(true|false*)\tUse to compare pixel to pixel original site with converted
+  --pixelCompare=(true|false*)\tWhether to compare pixel to pixel original site with converted
   --port=PORT_NUMBER\tPort number to use to compare before and after (defaults to 8080)
 
 Examples:
@@ -32,7 +32,7 @@ Examples:
   ./amp-prototyper http://127.0.0.1:8080 --verbose
 
   # AMPlify a page and compare original site with converted.
-  ./amp-prototyper http://127.0.0.1:8080 --shouldcompare=true
+  ./amp-prototyper http://127.0.0.1:8080 --pixelCompare=true
 
   # AMPlify a page and use a different port.
   ./amp-prototyper http://127.0.0.1:8080 --port=3000

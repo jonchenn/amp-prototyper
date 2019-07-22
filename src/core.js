@@ -413,12 +413,12 @@ async function amplifyFunc(browser, url, steps, argv, computedDimensions) {
   let ampErrors = await validateAMP(pageContent);
 
   // Output initial HTML, screenshot and amp errors.
-  await writeToFile(`steps/output-step-0.html`, pageContent);
+  await writeToFile(`output-original.html`, pageContent);
   await page.screenshot({
-    path: `output/${outputPath}/steps/output-step-0.png`,
+    path: `output/${outputPath}/output-original.png`,
     fullPage: true
   });
-  await writeToFile(`steps/output-step-0-log.txt`, ampErrors.join('\n'));
+  await writeToFile(`output-original-log.txt`, ampErrors.join('\n'));
 
   // Clear page.on listener.
   page.removeListener('response', collectStyles);
@@ -519,12 +519,14 @@ async function amplifyFunc(browser, url, steps, argv, computedDimensions) {
   });
   await writeToFile(`output-final-log.txt`, (ampErrors || []).join('\n'));
 
-  let shouldcompare = argv['shouldcompare'] ? argv['shouldcompare'] === 'true' : false;
-
-  if(!shouldcompare) return;
+  let pixelCompare =
+      argv['pixelCompare'] ? argv['pixelCompare'] === 'true' : false;
+  if(!pixelCompare) return;
 
   try{
-    await compareImages(`output/${outputPath}/steps/output-step-0.png`,`output/${outputPath}/output-final.png`, `output/${outputPath}/output-difference.png`, computedDimensions.computedHeight, computedDimensions.computedWidth, page, 'output-final.png', server, `output/${outputPath}/output-replace.png`);
+    await compareImages(`output/${outputPath}/output-original.png`,
+      `output/${outputPath}/output-final.png`,
+      `output/${outputPath}/output-difference.png`, computedDimensions.computedHeight, computedDimensions.computedWidth, page, 'output-final.png', server, `output/${outputPath}/output-replace.png`);
   } catch(error) {
     console.log('Not able to compare at this time, please create issue with following info: '.yellow, error);
   }
@@ -561,7 +563,6 @@ async function compareImages(image1Path, image2Path, diffPath, computedHeight, c
     img2 = await resizeImage(computedHeight, computedWidth, backgroundImage, replacementPath, server, page);
   }
   const diff = new PNG({width,height});
-
   const mismatch = runComparison(img1.data, img2.data, diff, width, height);
 
   console.log(`Difference between original and converted: ${((mismatch/(width * height)) * 100).toFixed(2)}%`);

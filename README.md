@@ -46,6 +46,8 @@ Required arguments:
 - `--device=DEVICE_NAME` - Use specific device name for screenshots.
 - `--headless=(true|false)` - Whether to show browser.
 - `--verbose` - Display AMP validation errors.
+- `pixelCompare=(true|false*)` - Whether to compare pixel to pixel original site with converted
+- `port=PORT_NUMBER` - Port number to use to compare before and after (defaults to 8080)
 
 ### Examples:
 
@@ -424,5 +426,3 @@ Collect all external CSS and append a
 <li><a href="https://github.com/jakubpawlowicz/clean-css">clean-css</a></li>
 <li><a href="https://github.com/purifycss/purifycss">purifycss</a></li>
 </ul>
-
-
