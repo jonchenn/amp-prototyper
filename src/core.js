@@ -505,10 +505,8 @@ async function amplifyFunc(browser, url, steps, argv, computedDimensions) {
   //Add the disclaimer watermark
   html = addDisclaminerWatermark(html);
 
-
   // need to make sure we close out the server that was used!
   await server.close();
-
   console.log('Local server closed!'.cyan);
 
   // Write final outcome to file.
@@ -519,9 +517,9 @@ async function amplifyFunc(browser, url, steps, argv, computedDimensions) {
   });
   await writeToFile(`output-final-log.txt`, (ampErrors || []).join('\n'));
 
-  let pixelCompare =
-      argv['pixelCompare'] ? argv['pixelCompare'] === 'true' : false;
-  if(!pixelCompare) return;
+  let compareScreenshots =
+      argv['compareScreenshots'] ? argv['compareScreenshots'] === 'true' : false;
+  if(!compareScreenshots) return;
 
   try{
     await compareImages(`output/${outputPath}/output-original.png`,

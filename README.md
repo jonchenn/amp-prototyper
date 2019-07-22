@@ -46,7 +46,7 @@ Required arguments:
 - `--device=DEVICE_NAME` - Use specific device name for screenshots.
 - `--headless=(true|false)` - Whether to show browser.
 - `--verbose` - Display AMP validation errors.
-- `pixelCompare=(true|false*)` - Whether to compare pixel to pixel original site with converted
+- `compareScreenshots=(true|false*)` - Whether to compare original site with converted.
 - `port=PORT_NUMBER` - Port number to use to compare before and after (defaults to 8080)
 
 ### Examples:
@@ -69,6 +69,9 @@ Required arguments:
 
 # Amplify a page and display browser.
 ./amp-prototyper http://127.0.0.1:8080 --headless=false
+
+# Amplify a page and compare original site with converted.
+./amp-prototyper http://127.0.0.1:8080 --compareScreenshots=true
 ```
 
 ### Test with a sample HTML.
