@@ -7,6 +7,7 @@ This Node.js-based script is a prototyping tool that automatically converts a HT
 - The goal is to showcase the advantages of AMP in page load performance.
 - It generates a converted AMP HTML, a screenshot, and AMP validation errors for each step.
 - It automatically converts a HTML page to AMP with pre-defined steps. You can customize the steps for specific scenarios.
+- Final output contains image comparison and match percentage to original URL. Remove the watermark from the HTML and manually review the output
 
 ## What is amp-prototyper
 
@@ -77,7 +78,7 @@ You can also run a sample HTML with following:
 yarn sample
 ```
 
-This opens up a localhost web server at <http://127.0.0.1:8080> by default that serves [test/index.html](https://github.com/jonchenn/amp-prototyper/blob/master/test/index.html). This is a quick and simple HTML page to test amp-prototyper. You can run the following to see how amp-prototyper works.
+This opens up a localhost web server at <http://127.0.0.1:8080> by default that serves [test/index.html](https://github.com/jonchenn/amp-prototyper/blob/master/test/index.html). This is a quick and simple HTML page to test amp-prototyper. You can run the following to see how amp-prototyper works. (If localhost has trouble connecting to the port, add the --port flag with a different port number)
 
 ```
 # Amplify the page at localhost and output in sample/ folder.
@@ -121,6 +122,15 @@ yarn output
 ```
 
 Open up the localhost URL with a browser. For example: <http://127.0.0.1:8080>
+
+Check the image comparsion to see visual differences in the original URL and AMP HTML
+
+Remove the watermark in the AMP HTML and review the code for additional changes/AMP validation error fixes
+
+### Caveats
+
+- Styles from '@import' media queries must be manually added
+- HTML containing ShadowDOMs and nested ShadowDOMS are unsupported
 
 ## Customize steps
 
@@ -414,3 +424,5 @@ Collect all external CSS and append a
 <li><a href="https://github.com/jakubpawlowicz/clean-css">clean-css</a></li>
 <li><a href="https://github.com/purifycss/purifycss">purifycss</a></li>
 </ul>
+
+
