@@ -124,17 +124,6 @@ module.exports = [
     }],
   },
   {
-    name: 'Remove disallowed attributes and tags based on AMP validation result.',
-    actions: [{
-      log: 'Remove disallowed attributes',
-      actionType: 'replaceBasedOnAmpErrors',
-      selector: 'html',
-      ampErrorRegex: 'The attribute \'([^\']*)\' may not appear in tag',
-      regex: ' $1(="[^"]*"|\\s|>)',
-      replace: '',
-    }],
-  },
-  {
     name: 'Add AMP JS library and AMP boilerplate',
     actions: [{
       log: 'Set HTML tag with AMP',
@@ -203,7 +192,7 @@ module.exports = [
       log: 'Replace img to amp-img',
       actionType: 'replace',
       selector: 'html',
-      regex: '<img ((\\w*="[^"]*"\\s?)*)>',
+      regex: '<img\\s+((\\w*="[^"]*"\\s*)*)[^>]*/?>',
       replace: '<amp-img $1></amp-img>',
     }, {
       log: 'Set intrinsic layout',
@@ -212,5 +201,17 @@ module.exports = [
       attribute: 'layout',
       value: 'intrinsic',
     }],
-  }
+  },
+  {
+    name: 'Remove disallowed attributes and tags based on AMP validation result.',
+    actions: [{
+      log: 'Remove disallowed attributes',
+      actionType: 'replaceBasedOnAmpErrors',
+      selector: 'html',
+      ampErrorRegex: 'The attribute \'([^\']*)\' may not appear in tag \'([^\']*)\'',
+      regex: '<($2)\\s+(((?!$1)[\\w-]*="[^"]*"\\s*)*)($1="[^"]*")',
+      replace: '<$1 $2',
+    }],
+  },
+
 ];

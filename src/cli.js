@@ -15,6 +15,7 @@ Options (*denotes default value if not passed in):
   --device=DEVICE_NAME\tUse specific device name for screenshots.
   --headless=(true*|false)\tWhether to show browser.
   --verbose\tDisplay AMP validation errors.
+  --fullPageScreenshot=(true|false*)\tWhether to save full-page screenshots.
   --compareScreenshots=(true|false*)\tWhether to compare original site with converted.
   --port=PORT_NUMBER\tPort number to use to compare before and after (defaults to 8080).
 

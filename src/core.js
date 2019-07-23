@@ -345,7 +345,7 @@ async function runAction(action, sourceDom, page) {
 //add disclaimer watermark
 //TODO: refactor disclaimer text to a static file
 function addDisclaminerWatermark(html) {
-  console.log("adding disclaimer");
+  console.log('Adding disclaimer'.yellow);
   let bodyTag = html.match(/<body[^>]*>/);
   return bodyTag ? html.replace(bodyTag, bodyTag + watermarkTpl) : html;
 }
@@ -361,10 +361,15 @@ async function amplifyFunc(browser, url, steps, argv, computedDimensions) {
   assert(url, 'Missing url.');
   assert(steps, 'Missing steps');
 
-  let host = url.match(/(https|http)\:\/\/[\w.-]*(\:\d+)?/i)[0];
+  // Set default protocol as https if no protocol is given.
+  let protocol = url.match(/(https|http).*/i);
+  url = protocol ? url : 'https://' + url;
+
+  let host = url.match(/(https|http)\:\/\/([\w.-]*(\:\d+)?)/i)[0];
+  assert(host, 'Unable to get host from ' + url);
+
   let domain = host.replace(/http(s)?:\/\//ig, '');
   let urlWithoutProtocol = url.replace(/http(s)?:\/\//ig, '');
-  assert(host, 'Unable to get host from ' + url);
   assert(domain, 'Unable to get domain from ' + url);
 
   // Set output subfolder using domain if undefined.
@@ -377,6 +382,7 @@ async function amplifyFunc(browser, url, steps, argv, computedDimensions) {
   };
 
   console.log('Url: ' + url.green);
+  console.log('Host: ' + host.green);
   console.log('Domain: ' + domain.green);
 
   // Create directory if it doesn't exist.
@@ -394,7 +400,7 @@ async function amplifyFunc(browser, url, steps, argv, computedDimensions) {
     consoleOutputs.push(consoleObj.text());
   });
 
-  console.log('Step 0: loading page.'.yellow);
+  console.log(`Step 0: loading page: ${url}`.yellow);
 
   // Open URL and save source to sourceDom.
   let response = await page.goto(url);
@@ -417,9 +423,9 @@ async function amplifyFunc(browser, url, steps, argv, computedDimensions) {
   await writeToFile(`output-original.html`, pageContent);
   await page.screenshot({
     path: `output/${outputPath}/output-original.png`,
-    fullPage: true
+    fullPage: argv['fullPageScreenshot']
   });
-  await writeToFile(`output-original-log.txt`, ampErrors.join('\n'));
+  await writeToFile(`output-original-validation.txt`, ampErrors.join('\n'));
 
   // Clear page.on listener.
   page.removeListener('response', collectStyles);
@@ -494,10 +500,10 @@ async function amplifyFunc(browser, url, steps, argv, computedDimensions) {
 
     await page.screenshot({
       path: `output/${outputPath}/steps/output-step-${i+1}.png`,
-      fullPage: true
+      fullPage: argv['fullPageScreenshot']
     });
 
-    await writeToFile(`steps/output-step-${i+1}-log.txt`, (ampErrors || []).join('\n'));
+    await writeToFile(`steps/output-step-${i+1}-validation.txt`, (ampErrors || []).join('\n'));
 
     // Print AMP validation result.
     ampErrors = await validateAMP(html, true /* printResult */ );
@@ -514,21 +520,21 @@ async function amplifyFunc(browser, url, steps, argv, computedDimensions) {
   await writeToFile(`output-final.html`, html);
   await page.screenshot({
     path: `output/${outputPath}/output-final.png`,
-    fullPage: true
+    fullPage: argv['fullPageScreenshot']
   });
-  await writeToFile(`output-final-log.txt`, (ampErrors || []).join('\n'));
+  await writeToFile(`output-final-validation.txt`, (ampErrors || []).join('\n'));
 
-  let compareScreenshots =
-      argv['compareScreenshots'] ? argv['compareScreenshots'] === 'true' : false;
-  if(!compareScreenshots) return;
-
-  try{
-    await compareImages(`output/${outputPath}/output-original.png`,
-      `output/${outputPath}/output-final.png`,
-      `output/${outputPath}/output-difference.png`, computedDimensions.computedHeight, computedDimensions.computedWidth, page, 'output-final.png', server, `output/${outputPath}/output-replace.png`);
-  } catch(error) {
-    console.log('Not able to compare at this time, please create issue with following info: '.yellow, error);
+  if (argv['compareScreenshots'] && argv['compareScreenshots'] === 'true') {
+    try{
+      await compareImages(`output/${outputPath}/output-original.png`,
+        `output/${outputPath}/output-final.png`,
+        `output/${outputPath}/output-difference.png`, computedDimensions.computedHeight, computedDimensions.computedWidth, page, 'output-final.png', server, `output/${outputPath}/output-replace.png`);
+    } catch(error) {
+      console.log('Not able to compare at this time, please create issue with following info: '.yellow, error);
+    }
   }
+
+  console.log(`You can find the output files at ./output/${outputPath}/`.cyan);
 }
 
 async function amplify(url, steps, argv) {
@@ -592,7 +598,7 @@ async function resizeImage(height, width, imageLocation, replacementPath, server
   await writeToFile(`output-replace.html`, await page.content());
   await page.screenshot({
     path: replacementPath,
-    fullPage: true
+    fullPage: argv['fullPageScreenshot']
   });
   await server.close();
   return PNG.sync.read(fse.readFileSync(replacementPath));

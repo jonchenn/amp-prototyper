@@ -114,7 +114,7 @@ At each step, it executes a set of actions and writes the files below to the out
 
 - `output-step-[STEP_ID].html` - the modified HTML.
 - `output-step-[STEP_ID].png` - the screenshot after this step.
-- `output-step-[STEP_ID]-log.txt` (only with --verbose) - AMP validation errors from console output.
+- `output-step-[STEP_ID]-validation.txt` (only with --verbose) - AMP validation errors from console output.
 
 If you don't specify --output, it uses the domain from the given URL as the name of the output folder.
 
