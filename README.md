@@ -45,9 +45,10 @@ Required arguments:
 - `--output=FILE` - Path to the output file.
 - `--device=DEVICE_NAME` - Use specific device name for screenshots.
 - `--headless=(true|false)` - Whether to show browser.
-- `--verbose` - Display AMP validation errors.
+- `--fullPageScreenshot=(true|false*)` - tWhether to save full-page screenshots.
 - `--compareScreenshots=(true|false*)` - Whether to compare original site with converted.
 - `--port=PORT_NUMBER` - Port number to use to compare before and after (defaults to 8080)
+- `--verbose` - Display AMP validation errors.
 
 ### Examples:
 
