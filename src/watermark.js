@@ -11,7 +11,7 @@ module.exports = `
     width: 75%;
     position: fixed;
     left: 50%;
-    bottom:0;margin-left: -37.5%;"">
+    bottom:0;margin-left: -37.5%;">
   <h3 style="color: #000; font-weight: bold;">
     This page is not production-ready, yet
   </h3>
