@@ -19,6 +19,9 @@
     "url": "https://github.com/jonchenn/amp-prototyper/issues"
   },
   "homepage": "https://github.com/jonchenn/amp-prototyper#readme",
+  "bin": {
+    "amp-prototyper": "./amp-prototyper"
+  },
   "dependencies": {
     "amphtml-validator": "^1.0.23",
     "clean-css": "^4.2.1",
