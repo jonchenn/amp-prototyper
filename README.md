@@ -21,12 +21,31 @@ This tool doesn't aim to create production-ready AMP pages from any arbitrary HT
 
 ## Getting started
 
-Run the following to run the script locally.
+To run the script, you may choose one of the following methods:
+
+#### npx
+
+Run the script directly with npx:
+
+```
+npx amp-prototyper [URL]
+```
+
+- `URL` - URL to the page to convert.
+
+#### npm or yarn
+
+Install amp-prototyper package.
 
 ```
 git clone https://github.com/jonchenn/amp-prototyper.git
 cd amp-prototyper
 yarn install
+```
+
+Then, run the script.
+```
+./amp-prototyper [URL]
 ```
 
 ### Usage
