@@ -153,6 +153,27 @@ async function runAction(action, sourceDom, page) {
       message = `${numReplaced} replaced: ${Array.from(matchSet).join(', ')}`;
       break;
 
+    case 'removeDisallowedAttribute': {
+      let ampErrorRegex = 'The attribute \'([^\']*)\' may not appear in tag \'([\\w-]* > )*([\\w-]*)\'';
+      let ampErrorMatches = matchAmpErrors(ampErrors, ampErrorRegex);
+      let matchSet = new Set();
+      let numRemoved = 0;
+
+      ampErrorMatches.forEach(matches => {
+        let attribute = matches[1];
+        let tag = matches[3];
+        matchSet.add(attribute)
+        numRemoved += matches ? matches.length : 0;
+
+        elements = sourceDom.querySelectorAll(tag);
+        elements.forEach((el) => {
+          el.removeAttribute(attribute);
+        });
+      });
+
+      message = `${numRemoved} removed: ${Array.from(matchSet).join(', ')}`;
+      break; }
+
     case 'replace':
       elements = sourceDom.querySelectorAll(action.selector);
       if (!elements.length) throw new Error(`No matched element(s): ${action.selector}`);
