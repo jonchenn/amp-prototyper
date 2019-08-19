@@ -355,6 +355,7 @@ async function amplifyFunc(browser, url, steps, argv, computedDimensions) {
   verbose = argv.hasOwnProperty('verbose');
 
   let device = argv['device'] || 'Pixel 2'
+  let customHost = argv['customHost']
   let consoleOutputs = [];
 
   // Print warnings when missing necessary arguments.
@@ -377,7 +378,7 @@ async function amplifyFunc(browser, url, steps, argv, computedDimensions) {
 
   envVars = {
     '$URL': encodeURI(url),
-    '$HOST': host,
+    '$HOST': customHost || host,
     '$DOMAIN': domain,
   };
 
