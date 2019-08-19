@@ -1,4 +1,5 @@
-const puppeteer = require('puppeteer');
+const puppeteer = require('puppeteer-extra');
+const pluginStealth = require('puppeteer-extra-plugin-stealth')
 const devices = require('puppeteer/DeviceDescriptors');
 const fse = require('fs-extra');
 const mkdirp = require('mkdirp');
@@ -542,6 +543,7 @@ async function amplify(url, steps, argv) {
   port = argv['port'] || port;
 
   // Start puppeteer.
+  await puppeteer.use(pluginStealth())
   const browser = await puppeteer.launch({
     headless: isHeadless,
   });
