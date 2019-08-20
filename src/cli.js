@@ -17,27 +17,30 @@ Options (*denotes default value if not passed in):
   --verbose\tDisplay AMP validation errors.
   --fullPageScreenshot=(true|false*)\tWhether to save full-page screenshots.
   --compareScreenshots=(true|false*)\tWhether to compare original site with converted.
-  --customHost=HOST\tOverride the hostname with a custom one.
+  --customHost=HOST\tUse a custom host name when updating relative asset URLs.
   --port=PORT_NUMBER\tPort number to use to compare before and after (defaults to 8080).
 
 Examples:
   # AMPlify a page and generate results in /output folder.
-  ./amp-prototyper http://127.0.0.1:8080
+  ./amp-prototyper https://thinkwithgoogle.com
 
   # AMPlify a page and generate results in /output/test folder.
-  ./amp-prototyper http://127.0.0.1:8080 --output=test
+  ./amp-prototyper https://thinkwithgoogle.com --output=test
 
   # AMPlify a page with customized steps.
-  ./amp-prototyper http://127.0.0.1:8080 --steps=custom/mysteps.js
+  ./amp-prototyper https://thinkwithgoogle.com --steps=custom/mysteps.js
 
   # AMPlify a page and display AMP validation details.
-  ./amp-prototyper http://127.0.0.1:8080 --verbose
+  ./amp-prototyper https://thinkwithgoogle.com --verbose
 
   # AMPlify a page and compare original site with converted.
-  ./amp-prototyper http://127.0.0.1:8080 --compareScreenshots=true
+  ./amp-prototyper https://thinkwithgoogle.com --compareScreenshots=true
 
   # AMPlify a page and use a different port.
-  ./amp-prototyper http://127.0.0.1:8080 --port=3000
+  ./amp-prototyper https://thinkwithgoogle.com --port=3000
+
+  # Amplify a page that served from localhost and generate results with correct absolute URLs for assets.
+  ./amp-prototyper https://thinkwithgoogle.com --customHost=https://example.com
   `;
   console.log(usage);
 }
