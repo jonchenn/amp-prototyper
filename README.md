@@ -202,7 +202,8 @@ Common properties of an action:
 You can also use the following EnvVars in the steps configuration.
 
 - `$URL` <[string]> The URL from the `--url` parameter.
-- `$HOST` <[string]> The host derived from the URL.- `$DOMAIN` <[string]> The domain derived from the URL.
+- `$HOST` <[string]> The host derived from the URL.
+- `$DOMAIN` <[string]> The domain derived from the URL.
 
 For example, you have a step like below:
 

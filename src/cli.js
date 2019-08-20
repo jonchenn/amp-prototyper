@@ -21,22 +21,22 @@ Options (*denotes default value if not passed in):
   --port=PORT_NUMBER\tPort number to use to compare before and after (defaults to 8080).
 
 Examples:
-  # AMPlify a page and generate results in /output folder.
+  # Amplify a page and generate results in /output folder.
   ./amp-prototyper https://thinkwithgoogle.com
 
-  # AMPlify a page and generate results in /output/test folder.
+  # Amplify a page and generate results in /output/test folder.
   ./amp-prototyper https://thinkwithgoogle.com --output=test
 
-  # AMPlify a page with customized steps.
+  # Amplify a page with customized steps.
   ./amp-prototyper https://thinkwithgoogle.com --steps=custom/mysteps.js
 
-  # AMPlify a page and display AMP validation details.
+  # Amplify a page and display AMP validation details.
   ./amp-prototyper https://thinkwithgoogle.com --verbose
 
-  # AMPlify a page and compare original site with converted.
+  # Amplify a page and compare original site with converted.
   ./amp-prototyper https://thinkwithgoogle.com --compareScreenshots=true
 
-  # AMPlify a page and use a different port.
+  # Amplify a page and use a different port.
   ./amp-prototyper https://thinkwithgoogle.com --port=3000
 
   # Amplify a page that served from localhost and generate results with correct absolute URLs for assets.

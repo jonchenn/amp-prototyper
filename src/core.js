@@ -150,7 +150,7 @@ async function runAction(action, sourceDom, page) {
           el.innerHTML = el.innerHTML.replace(regex, action.replace);
         });
       });
-      message = `${numReplaced} replaced: ${Array.from(matchSet).join(', ')}`;
+      message = `${numReplaced} replaced: ${[...matchSet].join(', ')}`;
       break;
 
     case 'removeDisallowedAttribute': {
@@ -171,7 +171,7 @@ async function runAction(action, sourceDom, page) {
         });
       });
 
-      message = `${numRemoved} removed: ${Array.from(matchSet).join(', ')}`;
+      message = `${numRemoved} removed: ${[...matchSet].join(', ')}`;
       break; }
 
     case 'replace':
