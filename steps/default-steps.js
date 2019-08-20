@@ -189,28 +189,30 @@ module.exports = [
         }
       },
     }, {
+      log: 'Remove attribute sizes in img',
+      actionType: 'removeAttribute',
+      selector: 'img',
+      attribute: 'sizes'
+    }, {
       log: 'Replace img to amp-img',
       actionType: 'replace',
       selector: 'html',
       regex: '<img\\s+((\\w*="[^"]*"\\s*)*)[^>]*/?>',
       replace: '<amp-img $1></amp-img>',
     }, {
-      log: 'Set intrinsic layout',
+      log: 'Set fixed layout',
       actionType: 'setAttribute',
       selector: 'amp-img',
       attribute: 'layout',
-      value: 'intrinsic',
+      value: 'fixed',
     }],
   },
   {
     name: 'Remove disallowed attributes and tags based on AMP validation result.',
     actions: [{
       log: 'Remove disallowed attributes',
-      actionType: 'replaceBasedOnAmpErrors',
+      actionType: 'removeDisallowedAttribute',
       selector: 'html',
-      ampErrorRegex: 'The attribute \'([^\']*)\' may not appear in tag \'([^\']*)\'',
-      regex: '<($2)\\s+(((?!$1)[\\w-]*="[^"]*"\\s*)*)($1="[^"]*")',
-      replace: '<$1 $2',
     }],
   },
 

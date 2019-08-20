@@ -7,9 +7,10 @@ const { PNG } = require('pngjs');
 const prototyper = require('../src/core');
 const steps = require('../steps/default-steps');
 const urlsToTest = [
-  //{url:'https://www.thinkwithgoogle.com/', percentage: '0.66'},
+  // Format: {url string, percentage of difference}
+  {url:'https://www.thinkwithgoogle.com/', percentage: '0.00'},
   //{url:'https://www.dulcolax.com/', percentage: '23.57'},
-  {url: 'https://www.ancestrydna.com/', percentage: ''},
+  {url: 'https://www.ancestrydna.com/', percentage: '55.95'},
   // {url: 'https://www.newegg.com/', percentage: ''},
   // {url: 'https://www.libertymutual.com/', percentage: ''},
   // {url: 'https://www.wyndhamhotels.com/', percentage: ''},
@@ -41,7 +42,7 @@ async function tests() {
     let urlWithoutProtocol = url.url.replace(/http(s)?:\/\//ig, '');
     let outputPath = urlWithoutProtocol.replace(/\//ig, '_');
 
-    const passed = await compareImages(`output/${outputPath}/steps/output-step-0.png`, `output/${outputPath}/output-final.png`, `output/${outputPath}/output-temp.png`, computedDimensions[index], url.percentage);
+    const passed = await compareImages(`output/${outputPath}/output-original.png`, `output/${outputPath}/output-final.png`, `output/${outputPath}/output-temp.png`, computedDimensions[index], url.percentage);
     if (passed) {
       pass++;
     }

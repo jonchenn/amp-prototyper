@@ -150,8 +150,29 @@ async function runAction(action, sourceDom, page) {
           el.innerHTML = el.innerHTML.replace(regex, action.replace);
         });
       });
-      message = `${numReplaced} replaced: ${Array.from(matchSet).join(', ')}`;
+      message = `${numReplaced} replaced: ${[...matchSet].join(', ')}`;
       break;
+
+    case 'removeDisallowedAttribute': {
+      let ampErrorRegex = 'The attribute \'([^\']*)\' may not appear in tag \'([\\w-]* > )*([\\w-]*)\'';
+      let ampErrorMatches = matchAmpErrors(ampErrors, ampErrorRegex);
+      let matchSet = new Set();
+      let numRemoved = 0;
+
+      ampErrorMatches.forEach(matches => {
+        let attribute = matches[1];
+        let tag = matches[3];
+        matchSet.add(attribute)
+        numRemoved += matches ? matches.length : 0;
+
+        elements = sourceDom.querySelectorAll(tag);
+        elements.forEach((el) => {
+          el.removeAttribute(attribute);
+        });
+      });
+
+      message = `${numRemoved} removed: ${[...matchSet].join(', ')}`;
+      break; }
 
     case 'replace':
       elements = sourceDom.querySelectorAll(action.selector);
@@ -355,6 +376,7 @@ async function amplifyFunc(browser, url, steps, argv, computedDimensions) {
   verbose = argv.hasOwnProperty('verbose');
 
   let device = argv['device'] || 'Pixel 2'
+  let customHost = argv['customHost']
   let consoleOutputs = [];
 
   // Print warnings when missing necessary arguments.
@@ -377,7 +399,7 @@ async function amplifyFunc(browser, url, steps, argv, computedDimensions) {
 
   envVars = {
     '$URL': encodeURI(url),
-    '$HOST': host,
+    '$HOST': customHost || host,
     '$DOMAIN': domain,
   };
 

@@ -66,6 +66,7 @@ Required arguments:
 - `--headless=(true|false)` - Whether to show browser.
 - `--fullPageScreenshot=(true|false*)` - tWhether to save full-page screenshots.
 - `--compareScreenshots=(true|false*)` - Whether to compare original site with converted.
+- `--customHost=HOST` - Use a custom host name when updating relative asset URLs.
 - `--port=PORT_NUMBER` - Port number to use to compare before and after (defaults to 8080)
 - `--verbose` - Display AMP validation errors.
 
@@ -73,25 +74,28 @@ Required arguments:
 
 ```
 # Amplify a page and generate results in /output folder.
-./amp-prototyper http://127.0.0.1:8080
+./amp-prototyper https://thinkwithgoogle.com
 
 # Amplify a page and generate results in /output/test folder.
-./amp-prototyper http://127.0.0.1:8080 --output=test
+./amp-prototyper https://thinkwithgoogle.com --output=test
 
 # Amplify a page with customized steps.
-./amp-prototyper http://127.0.0.1:8080 --steps=custom/mysteps.js
+./amp-prototyper https://thinkwithgoogle.com --steps=custom/mysteps.js
 
 # Amplify a page and display AMP validation details.
-./amp-prototyper http://127.0.0.1:8080 --verbose
+./amp-prototyper https://thinkwithgoogle.com --verbose
 
 # Amplify a page and generate screenshots with specific Device.
-./amp-prototyper http://127.0.0.1:8080 --device='Pixel 2'
+./amp-prototyper https://thinkwithgoogle.com --device='Pixel 2'
 
 # Amplify a page and display browser.
-./amp-prototyper http://127.0.0.1:8080 --headless=false
+./amp-prototyper https://thinkwithgoogle.com --headless=false
 
 # Amplify a page and compare original site with converted.
-./amp-prototyper http://127.0.0.1:8080 --compareScreenshots=true
+./amp-prototyper https://thinkwithgoogle.com --compareScreenshots=true
+
+# Amplify a page that served from localhost and generate results with correct absolute URLs for assets.
+./amp-prototyper https://thinkwithgoogle.com --customHost=https://example.com
 ```
 
 ### Test with a sample HTML.
@@ -183,44 +187,23 @@ Each step follows the structure below.
 
 Step properties:
 
-- `name`
-
-  <string> - Step name.</string>
-
-- `actions`<Array<[Action]()>> - actions to execute.
-- `skip`
-
-  <boolean> - Whether to skip this step.</boolean>
+- `name` <[string]> Step name.
+- `actions` <[Array]<[Action]()>> actions to execute.
+- `skip` <[boolean]> Whether to skip this step.
 
 Common properties of an action:
 
-- `actionType`
-
-  <string> - Action type.</string>
-
-- `log`
-
-  <string> - Message output of this action.</string>
-
-- `waitAfterLoaded`
-
-  <int> - Wait for a specific milliseconds after the page loaded.</int>
+- `actionType` <string]> Action type.
+- `log` <[string]> Message output of this action.
+- `waitAfterLoaded` <[number]> Wait for a specific milliseconds after the page loaded.
 
 ### Environment Variables
 
 You can also use the following EnvVars in the steps configuration.
 
-- `$URL`
-
-  <string> - The URL from the --url parameter.</string>
-
-- `$HOST`
-
-  <string> - The host derived from the URL.</string>
-
-- `$DOMAIN`
-
-  <string> - The domain derived from the URL.</string>
+- `$URL` <[string]> The URL from the `--url` parameter.
+- `$HOST` <[string]> The host derived from the URL.
+- `$DOMAIN` <[string]> The domain derived from the URL.
 
 For example, you have a step like below:
 
@@ -245,50 +228,36 @@ While running the script with `https://example.com`, it replaces """$HOST""" wit
 
 Set an attribute to a specific element.
 
-- `log`
+- `selector` <[string]> target element.
+- `attribute` <[string]> attribute to ad.
+- `value` <[string]> the attribute value.
 
-  <string> - Message output of this action.</string>
+#### removeAttribute
 
-- `waitAfterLoaded`
+Remove an attribute to a specific element.
 
-  <int> - Wait for a specific milliseconds after the page loaded.</int>
-
+- `selector` <[string]> target element.
+- `attribute` <[string]> attribute to remove.
 #### replace
 
 Use Regex to find and replace in the DOM.
 
-- `selector`
+- `selector` <[string]> target element.
+- `regex` <[string]> Regex string to match.
+- `replace` <[string]> Replace matches with this string.
+#### removeDisallowedAttribute
 
-  <string> - target element.</string>
+Remove an attribute to specific elements based on AMP validation errors.
 
-- `regex`
-
-  <string> - Regex string to match.</string>
-
-- `replace`
-
-  <string> - Replace matches with this string.</string>
-
+- `selector` <[string]> target element.
 #### replaceBasedOnAmpErrors
 
 Use Regex to find and replace in the DOM based on AMP validation errors.
 
-- `selector`
-
-  <string> - target element.</string>
-
-- `ampErrorRegex`
-
-  <string> - Regex string to match for AMP validation errors.</string>
-
-- `regex`
-
-  <string> - Regex string to match.</string>
-
-- `replace`
-
-  <string> - Replace matches with this string.</string>
-
+- `selector` <[string]> target element.
+- `ampErrorRegex` <[string]> Regex string to match for AMP validation errors.
+- `regex` <[string]> Regex string to match.
+- `replace` <[string]> Replace matches with this string.
 For example, in a specific step it has the following AMP validation errors.
 
 ```
@@ -327,34 +296,16 @@ Finally, it uses the revised `regex` to replace the content with `replace` value
 
 Use Regex to find and replace in the DOM. If not found, insert to the destination element.
 
-- `selector`
-
-  <string> - target element.</string>
-
-- `regex`
-
-  <string> - Regex string to match.</string>
-
-- `replace`
-
-  <string> - Replace matches with this string.</string>
-
+- `selector` <[string]> target element.
+- `regex` <[string]> Regex string to match.
+- `replace` <[string]> Replace matches with this string.
 #### insert
 
 Insert a string to the bottom of the destination element. E.g. adding a string to the bottom of the .
 
-- `selector`
-
-  <string> - target element.</string>
-
-- `value`
-
-  <string> - the string to insert.</string>
-
-- `destSelector`
-
-  <string> - destination element.</string>
-
+- `selector` <[string]> target element.
+- `value` <[string]> the string to insert.
+- `destSelector` <[string]> destination element.
 #### move
 
 Move elements to the bottom of the destination element. E.g. moving all
@@ -363,47 +314,37 @@ Move elements to the bottom of the destination element. E.g. moving all
 
  to the bottom of the .
 
-- `selector`
-
-  <string> - target element.</string>
-
-- `destSelector`
-
-  <string> - destination element.</string>
-
+- `selector` <[string]> target element.
+- `destSelector` <[string]> destination element.
 #### appendAfter
 
 Append a string right after a specific element.
 
-- `selector`
-
-  <string> - target element.</string>
-
-- `value`
-
-  <string> - the string to append.</string>
-
+- `selector` <[string]> target element.
+- `value` <[string]> the string to append.
 #### inlineExternalStyles
 
-Collect all external CSS and append a
+Collect all external CSS and append a `<style>` tag with inline CSS.
 
-<style> tag with inline CSS.</p>
-<ul>
-<li><code>selector</code> <string> - target element to append the CSS.</li>
-<li><code>value</code> <string> - the string to append.</li>
-<li><code>excludeDomains</code> &lt;Array<string>&gt; - the array of excluded domains. E.g. <code>[&#39;examples.com&#39;]</code> excludes all CSS loaded from <code>examples.com</code>.</li>
-<li><code>minify</code> <boolean> - whether to minify CSS.</li>
-<li><code>attributes</code> &lt;Array<string>&gt; - add attributes when appending <style> tag.</li>
-</ul>
-<h4 id="removeunusedstyles">removeUnusedStyles</h4>
-<p>Remove unused CSS using <a href="https://github.com/jakubpawlowicz/clean-css">clean-css</a> and <a href="https://github.com/purifycss/purifycss">purifycss</a>.</p>
-<ul>
-<li><code>selector</code> <string> - target element.</li>
-<li><code>value</code> <string> - the string to append.</li>
-</ul>
-<h4 id="customfunc">customFunc</h4>
-<p>Run the action with a custom function. Example:</p>
-<pre><code>  # An action object.
+- `selector` <[string]> target element to append the CSS.
+- `value` <[string]> the string to append.
+- `excludeDomains` <[Array]<[string]>> the array of excluded domains. E.g. [&#39;examples.com&#39;] excludes all CSS loaded from <code>examples.com</code>.
+- `minify` <[boolean]> whether to minify CSS.
+- `attributes` <[Array]<[string]>> add attributes when appending `<style>` tag.
+
+#### removeUnusedStyles
+
+Remove unused CSS using [clean-css](https://github.com/jakubpawlowicz/clean-css) and [purifycss](https://github.com/purifycss/purifycss).
+
+- `selector` <[string]> target element.
+- `value` <[string]> the string to append.
+
+#### customFunc
+
+Run the action with a custom function. Example:
+
+An action object:
+```
   {
     log: &#39;Click a button&#39;,
     actionType: &#39;customFunc&#39;,
@@ -412,15 +353,20 @@ Collect all external CSS and append a
     },
   }],
 },
-</code></pre><p>In the custom function, there are three arguments:</p>
-<ul>
-<li><code>action</code> <ActionObject> - the action object itself.</li>
-<li><code>sourceDom</code> <DOM document> - the raw DOM document object before rendering, as in the View Source in Chrome.</li>
-<li><code>page</code> <puppeteer Page object> - The page object in puppeteer.</li>
-</ul>
-<h3 id="customize-steps">Customize steps</h3>
-<p>To customize your own steps for specific scenarios, create a .js file like below:</p>
-<pre><code>module.exports = [
+```
+
+In the custom function, there are three arguments:
+
+- `action` <[ActionObject]> the action object itself.
+- `sourceDom` <[DOM document]> the raw DOM document object before rendering, as in the View Source in Chrome.
+- `page` <[puppeteer Page object]> The page object in puppeteer.
+
+### Customize steps
+
+To customize your own steps for specific scenarios, create a .js file like below:
+
+```
+module.exports = [
   {
     name: &#39;Remove unwanted styles&#39;,
     actions: [{
@@ -440,12 +386,55 @@ Collect all external CSS and append a
     ...
   }
 ];
-</code></pre><p>Next, run the script with <code>--steps=/path/to/mysteps.js</code>:</p>
-<pre><code># Amplify a page with customized steps.
+```
+
+Next, run the script with `--steps=/path/to/mysteps.js`
+
+```
+# Amplify a page with customized steps.
 ./amp-prototyper http://127.0.0.1:8080 --steps=/path/to/mysteps.js
-</code></pre><h2 id="reference">Reference</h2>
-<ul>
-<li><a href="https://github.com/GoogleChrome/puppeteer">puppeteer</a></li>
-<li><a href="https://github.com/jakubpawlowicz/clean-css">clean-css</a></li>
-<li><a href="https://github.com/purifycss/purifycss">purifycss</a></li>
-</ul>
+```
+
+## Use cases with specific conditions
+
+### Sites with Crawler Protection
+
+Since AMP-prototyper is built with [Puppeteer](https://github.com/GoogleChrome/puppeteer) to fetch a page content, some sites may treat this as a crawler or bot, and thus block the access. You may see a different content (e.g. 404 page or timeout) than the regular page content.
+
+The blocking logic usually resides in the web hosting servers. Hence, there's no easy way to overcome. However, you can try the following options:
+
+#### Option 1 - Set headless=false
+
+Some sites may treat puppeteer activities as crawler if it runs in the headless mode. You can try running with headless off, and puppeteer will show the browser window like browsing by a real user.
+
+```
+# Amplify a page without headless mode.
+./amp-prototyper http://127.0.0.1:8080 --headless=false
+```
+
+#### Option 2 - Serve the page locally
+
+Another option to bypass crawler-protection is to download the page and serve the page from a local web server. (E.g. [http-server](https://www.npmjs.com/package/http-server))
+
+For example, you can save the index page of [ThinkWithGoogle.com](https://www.thinkwithgoogle.com) and serve it locally.  It's recommended to copy the **page source** directly instead of using a browser's Save function to avoid unexpected artifacts by the browser.
+
+Since the host is now `localhost` instead of its original host (www.thinkwithgoogle.com), all relative asset paths would incorrectly end up with localhost. Hence, we need to pass `--customHost` to restore its true remote host for asset URLs.
+
+```
+# Assuming that the index page is saved to ./tmp/web/index.html
+
+npm i http-server -g
+http-server ./tmp/web -p 3000
+```
+
+In a new terminal:
+
+```
+./amp-prototyper http://127.0.0.1:3000 --customHost=https://www.thinkwithgoogle.com
+```
+
+## Reference
+
+[puppeteer](https://github.com/GoogleChrome/puppeteer)
+[clean-css](https://github.com/jakubpawlowicz/clean-css)
+[purifycss](https://github.com/purifycss/purifycss)
