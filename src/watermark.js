@@ -19,7 +19,7 @@ module.exports = `
     This page is not production-ready, yet
   </h3>
   <p style=" font-size:14px;">
-    Please manually resovle any validation errors by adding
+    Please manually resolve any validation errors by adding
     <b>#development=1</b> to end of the URL and checking outputs inside the Chrome Dev Tools console,
     <br>or running the validation on:
     <a href="https://search.google.com/test/amp">AMP test</a><br>
